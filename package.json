@@ -8,21 +8,17 @@
   "license": "BSD3",
   "private": false,
   "scripts": {
-    "build": "tsc -m commonjs --outDir dist --declaration --allowJs false --rootDir src"
+    "build": "tsc -m commonjs --outDir dist --declaration --allowJs false --rootDir src",
+    "lint": "eslint src/**/*"
   },
   "dependencies": {
     "eris": "^0.11.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.7.7",
-    "@babel/plugin-proposal-optional-chaining": "^7.7.5",
-    "@babel/plugin-syntax-dynamic-import": "^7.7.4",
-    "@babel/preset-typescript": "^7.7.7",
     "@types/node": "^13.1.4",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",
-    "babel-eslint": "^10.0.3",
-    "babel-loader": "^8.0.6",
+    "eslint": "^6.0.0-rc.0",
     "eslint-config-prettier": "^6.9.0",
     "typescript": "^3.7.4",
     "webpack-cli": "^4.0.0-beta.1"

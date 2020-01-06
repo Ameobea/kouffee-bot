@@ -48,6 +48,22 @@ export const insert = (
     })
   );
 
+export const _delete = (
+  conn: mysql.Pool | mysql.PoolConnection,
+  query: string,
+  values: any[]
+): Promise<{ affectedRows: number }> =>
+  new Promise((resolve, reject) =>
+    conn.query(query, values, (err, res) => {
+      if (!!err) {
+        reject(err);
+        return;
+      }
+
+      resolve(res);
+    })
+  );
+
 export const getConn = (pool: mysql.Pool): Promise<mysql.PoolConnection> =>
   new Promise((resolve, reject) =>
     pool.getConnection((err, res) => {

@@ -4,6 +4,7 @@ import mysql from 'mysql';
 import { loadConf, CONF } from './conf';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
+import { getCustomCommandResponse } from './modules/custom-command';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -13,8 +14,6 @@ if (!token) {
 
 const client = Eris(token);
 
-const cmd = (name: string): string => `${CONF.general.command_symbol}${name}`;
-
 const getResponse = async (
   pool: mysql.Pool,
   msgContent: string,
@@ -22,17 +21,26 @@ const getResponse = async (
 ): Promise<string | undefined | null> => {
   const lowerMsg = msgContent.toLowerCase();
 
-  if (lowerMsg.startsWith(cmd('kouffee'))) {
+  if (!lowerMsg.startsWith(CONF.general.command_symbol)) {
+    return;
+  }
+
+  const lowerMsgContent = lowerMsg.split(CONF.general.command_symbol)[1]!;
+
+  if (lowerMsgContent.startsWith('kouffee')) {
     return 'https://ameo.link/u/6zv.jpg';
-  } else if (lowerMsg.startsWith(cmd('claim'))) {
+  } else if (lowerMsgContent.startsWith('claim')) {
     return claimDaily(pool, msg.author);
-  } else if (lowerMsg.startsWith(cmd('$')) || lowerMsg.startsWith(cmd('balance'))) {
+  } else if (lowerMsgContent === '$' || lowerMsgContent.startsWith('balance')) {
     return getBalance(pool, msg.author.id);
-  } else if (lowerMsg.startsWith(cmd('top'))) {
+  } else if (lowerMsgContent.startsWith('top')) {
     return getTopBalances(pool);
-  } else if (lowerMsg.startsWith(cmd('ameolink'))) {
+  } else if (lowerMsgContent.startsWith('ameolink')) {
     return getRandomAmeoLink();
   }
+
+  // Check to see if it was a custom command and return the custom response if it is
+  return getCustomCommandResponse(pool, lowerMsgContent);
 };
 
 const initMsgHandler = (pool: mysql.Pool) => {
@@ -56,7 +64,7 @@ const init = async () => {
   await loadConf();
   console.log('Loaded config');
 
-  var pool = mysql.createPool({
+  const pool = mysql.createPool({
     connectionLimit: 10,
     host: CONF.database.host,
     user: CONF.database.username,

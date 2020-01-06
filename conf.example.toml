@@ -1,0 +1,13 @@
+[general]
+command_symbol = "-"
+
+[database]
+host = "ameo.link"
+username = "kouffee-bot"
+password = "lolno"
+database = "kouffee-bot"
+
+[economy]
+daily_claim_interval_seconds = 600
+claim_amount = 5000
+currency_name = "Miku Bucks"

@@ -105,3 +105,4 @@ dist
 
 dist/*
 !dist/.gitkeep
+conf.toml

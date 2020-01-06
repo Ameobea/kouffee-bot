@@ -6,6 +6,7 @@ import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { roulette } from './modules/economy/gambling';
 import { maybeHandleCommand, init as initShips } from './modules/ships';
+import { getCustomCommandResponse } from './modules/custom-command';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -24,15 +25,21 @@ const getResponse = async (
 ): Promise<string | undefined | null | string[] | { embed: EmbedOptions }> => {
   const lowerMsg = msgContent.trim().toLowerCase();
 
-  if (lowerMsg.startsWith(cmd('kouffee'))) {
+  if (!lowerMsg.startsWith(CONF.general.command_symbol)) {
+    return;
+  }
+
+  const lowerMsgContent = lowerMsg.split(CONF.general.command_symbol)[1]!;
+
+  if (lowerMsgContent.startsWith('kouffee')) {
     return 'https://ameo.link/u/6zv.jpg';
-  } else if (lowerMsg.startsWith(cmd('claim'))) {
+  } else if (lowerMsgContent.startsWith('claim')) {
     return claimDaily(pool, msg.author);
-  } else if (lowerMsg.startsWith(cmd('$')) || lowerMsg.startsWith(cmd('balance'))) {
+  } else if (lowerMsgContent === '$' || lowerMsgContent.startsWith('balance')) {
     return getBalance(pool, msg.author.id);
-  } else if (lowerMsg.startsWith(cmd('top'))) {
+  } else if (lowerMsgContent.startsWith('top')) {
     return getTopBalances(pool);
-  } else if (lowerMsg.startsWith(cmd('ameolink'))) {
+  } else if (lowerMsgContent.startsWith('ameolink')) {
     return getRandomAmeoLink();
   } else if (lowerMsg.startsWith(cmd('roulette'))) {
     return roulette(lowerMsg, pool, msg.author);
@@ -56,6 +63,9 @@ const getResponse = async (
       return 'Invalid `ships` subcommand.  TODO: Add help docs...';
     }
   }
+
+  // Check to see if it was a custom command and return the custom response if it is
+  return getCustomCommandResponse(pool, lowerMsgContent);
 };
 
 const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {

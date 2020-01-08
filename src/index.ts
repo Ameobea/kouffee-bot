@@ -5,6 +5,7 @@ import { loadConf, CONF } from './conf';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { pingExpochant } from './modules/expochant';
+import { roulette } from './modules/economy/gambling';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -36,6 +37,8 @@ const getResponse = async (
   } else if (lowerMsg.startsWith(cmd('expochant'))){
     sendMultipleMessages(msg, await pingExpochant(lowerMsg));
     return null;
+  } else if (lowerMsg.startsWith(cmd('roulette'))){
+    return roulette(lowerMsg, pool, msg.author);
   }
 };
 

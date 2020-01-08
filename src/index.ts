@@ -4,6 +4,7 @@ import mysql from 'mysql';
 import { loadConf, CONF } from './conf';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
+import { pingExpochant } from './modules/expochant';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -21,7 +22,7 @@ const getResponse = async (
   msg: Eris.Message
 ): Promise<string | undefined | null> => {
   const lowerMsg = msgContent.toLowerCase();
-
+  console.log(lowerMsg);
   if (lowerMsg.startsWith(cmd('kouffee'))) {
     return 'https://ameo.link/u/6zv.jpg';
   } else if (lowerMsg.startsWith(cmd('claim'))) {
@@ -32,8 +33,25 @@ const getResponse = async (
     return getTopBalances(pool);
   } else if (lowerMsg.startsWith(cmd('ameolink'))) {
     return getRandomAmeoLink();
+  } else if (lowerMsg.startsWith(cmd('expochant'))){
+    sendMultipleMessages(msg, await pingExpochant(lowerMsg));
+    return null;
   }
 };
+
+const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
+  let i = 0;
+  function timedLoop(){
+    setTimeout(function(){
+      client.createMessage(msg.channel.id, messages[i]);
+      i++;
+      if(i < messages.length){
+        timedLoop();
+      }
+    },2500);
+  }
+  timedLoop();
+}
 
 const initMsgHandler = (pool: mysql.Pool) => {
   client.on('messageCreate', async msg => {

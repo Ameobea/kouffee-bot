@@ -21,7 +21,7 @@ const getRandomInt = (max:number) => {
     return Math.floor(Math.random() * Math.floor(max));
 }
 
-export const roulette = async (msg: string, pool: mysql.Pool, user: Eris.User): Promise<string> => {
+export const roulette = async (msg: string, pool: mysql.Pool, user: Eris.User): Promise<Object> => {
     let msgParts = msg.split(' ');
 
     if(msgParts.length < 3 || !acceptedTextBets.includes(msgParts[1]) || msgParts[2].includes('.') || (!Number(msgParts[2]) && msgParts[2] != "all") || Number(msgParts[2]) <= 0){
@@ -62,6 +62,49 @@ export const roulette = async (msg: string, pool: mysql.Pool, user: Eris.User): 
     let earnings = betAmount * multiplier;
     let endBalance = balance - betAmount + earnings;
     let netChange = 0 - betAmount + earnings;
+    let winEmoji;
+    let color;
+    
+    switch(multiplier){
+        case 0:
+            winEmoji = `:chart_with_downwards_trend:`;
+            break;
+        case 2:
+            winEmoji = `:chart_with_upwards_trend:`;
+            break;
+        case 36:
+            winEmoji = `:rocket:`;
+            break;
+        default:
+            winEmoji = ``;
+            break;
+    }
+
+    if(redWin.includes(String(roll)))
+        color = 0xff0000;
+    else if (blackWin.includes(String(roll)))
+        color = 0x000000;
+    else   
+        color = 0x00ff00;
+        
+    let embedObject = {
+        embed:{
+            title: winEmoji + `  You rolled ` + ((roll === 37) ? "00" : roll) + `  `+ winEmoji,
+            //description: balance + " --> " + endBalance,
+            color: color,
+            fields:[
+                {
+                    name: `Old Balance`,
+                    value: balance + ` ${CONF.economy.currency_name}`
+                },
+                {
+                    name: `New Balance`,
+                    value: endBalance + ` ${CONF.economy.currency_name}`
+                },
+            ]
+        }
+    };
+
     const conn = await getConn(pool);
     return new Promise(resolve => {
         conn.beginTransaction(async err => {
@@ -73,7 +116,8 @@ export const roulette = async (msg: string, pool: mysql.Pool, user: Eris.User): 
         await commit(conn);
 
         pool.releaseConnection(conn);
-        resolve(String(`You rolled ` + ((roll === 37) ? "00" : roll) + `: `+ balance + " --> " + endBalance));
+
+        resolve(embedObject);
     });
     });
 }

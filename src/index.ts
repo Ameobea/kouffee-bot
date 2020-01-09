@@ -21,9 +21,8 @@ const getResponse = async (
   pool: mysql.Pool,
   msgContent: string,
   msg: Eris.Message
-): Promise<string | undefined | null> => {
+): Promise<string | undefined | null | Object> => {
   const lowerMsg = msgContent.toLowerCase();
-  console.log(lowerMsg);
   if (lowerMsg.startsWith(cmd('kouffee'))) {
     return 'https://ameo.link/u/6zv.jpg';
   } else if (lowerMsg.startsWith(cmd('claim'))) {

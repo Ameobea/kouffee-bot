@@ -24,23 +24,30 @@ const getRandomInt = (max:number) => {
 export const roulette = async (msg: string, pool: mysql.Pool, user: Eris.User): Promise<string> => {
     let msgParts = msg.split(' ');
 
-    if(msgParts.length < 3 || !acceptedTextBets.includes(msgParts[1]) || !Number(msgParts[2])){
+    if(msgParts.length < 3 || !acceptedTextBets.includes(msgParts[1]) || msgParts[2].includes('.') || (!Number(msgParts[2]) && msgParts[2] != "all") || Number(msgParts[2]) <= 0){
         return `Usage: -roulette <red/black/even/odd/00/0-36> <bet amount>`;
     }
-    let betAmount = Number(msgParts[2]);
-    let betChoice = msgParts[1];
+
     const [row] = await query<{ user_id: number; balance: number }>(
         pool,
         'SELECT * FROM economy_balances WHERE user_id = ?;',
         [user.id]
     );
-
+    let balance = Option.of(row).map(R.prop('balance')).getOrElse(0);
+    let betAmount;
+    let roll = getRandomInt(38);
+    let multiplier = 0;
+    if (msgParts[2] === "all"){
+        betAmount = balance;
+    }
+    else{
+        betAmount = Number(msgParts[2]);
+    }
+    let betChoice = msgParts[1];
     if(R.isNil(row) || Option.of(row).map(R.prop('balance')).getOrElse(0) < Number(betAmount)){
         return `You dont have enough ${CONF.economy.currency_name}!`;
     }
-    let balance = Option.of(row).map(R.prop('balance')).getOrElse(0);
-    let roll = getRandomInt(38);
-    let multiplier = 0;
+
     if(
         (betChoice === "red" && redWin.includes(String(roll))) ||
         (betChoice === "black" && blackWin.includes(String(roll))) ||

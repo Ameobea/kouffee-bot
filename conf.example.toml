@@ -11,3 +11,19 @@ database = "kouffee-bot"
 daily_claim_interval_seconds = 600
 claim_amount = 5000
 currency_name = "Miku Bucks"
+
+[ships]
+timing_multiplier = 1.0
+
+[ships.resource_names]
+tier1 = "Hydrogen"
+tier2 = "Lithium"
+tier3 = "Silicon"
+special1 = "Plutonium"
+
+[ships.ship_names]
+ship1 = "Fighter"
+ship2 = "Interceptor"
+ship3 = "Frigate"
+ship4 = "Carrier"
+shipSpecial1 = "Dreadnaught"

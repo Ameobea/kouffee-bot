@@ -1,6 +1,5 @@
 export const pingExpochant = async (msg: string): Promise<string[]> => {
-  let msgParts = msg.split(' ');
-  console.log(msgParts[1]);
+  const msgParts = msg.split(' ');
   if (msgParts.length > 1)
     if (!Number(msgParts[1] && Number(msgParts[1]) < 50))
       return [`Usage: -expochant <number of pings, less than 50>`];

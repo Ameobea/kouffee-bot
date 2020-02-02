@@ -1,6 +1,8 @@
 import fs from 'fs';
 
 import toml from 'toml';
+import { Balances } from './modules/ships/economy';
+import { Fleet } from './modules/ships/fleet';
 
 export interface DatabaseConf {
   host: string;
@@ -23,6 +25,7 @@ export interface Conf {
   general: GeneralConf;
   database: DatabaseConf;
   economy: EconomyConf;
+  ships: ShipsConf;
 }
 
 export let CONF: Conf = null as any;
@@ -46,3 +49,8 @@ export const loadConf = async () => {
     process.exit(1);
   }
 };
+
+export interface ShipsConf {
+  resource_names: { [K in keyof Balances]: string };
+  ship_names: { [K in keyof Fleet]: string };
+}

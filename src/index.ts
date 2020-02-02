@@ -1,10 +1,11 @@
-import Eris from 'eris';
+import Eris, { EmbedOptions } from 'eris';
 import mysql from 'mysql';
 
 import { loadConf, CONF } from './conf';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { roulette } from './modules/economy/gambling';
+import { maybeHandleCommand } from './modules/ships/commands';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -14,14 +15,15 @@ if (!token) {
 
 const client = Eris(token);
 
-const cmd = (name: string): string => `${CONF.general.command_symbol}${name}`;
+export const cmd = (name: string): string => `${CONF.general.command_symbol}${name}`;
 
 const getResponse = async (
   pool: mysql.Pool,
   msgContent: string,
   msg: Eris.Message
-): Promise<string | undefined | null | Object> => {
-  const lowerMsg = msgContent.toLowerCase();
+): Promise<string | undefined | null | string[] | { embed: EmbedOptions }> => {
+  const lowerMsg = msgContent.trim().toLowerCase();
+
   if (lowerMsg.startsWith(cmd('kouffee'))) {
     return 'https://ameo.link/u/6zv.jpg';
   } else if (lowerMsg.startsWith(cmd('claim'))) {
@@ -37,21 +39,33 @@ const getResponse = async (
   } else if (lowerMsg.startsWith(cmd('hazbin'))) {
     return getRandomAmeoLink(Number.parseInt('74w', 36), Number.parseInt('7hh', 36));
   }
+
+  const [first, ...rest] = lowerMsg.split(/\s+/g);
+  console.log({ first, rest });
+
+  if (first && first.startsWith(cmd('ship'))) {
+    const shipsRes = await maybeHandleCommand(pool, msg.author.id, rest);
+    if (shipsRes) {
+      return shipsRes;
+    } else {
+      return 'Invalid `ships` subcommand.  TODO: Add help docs...';
+    }
+  }
 };
 
-// const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
-//   let i = 0;
-//   function timedLoop() {
-//     setTimeout(function() {
-//       client.createMessage(msg.channel.id, messages[i]);
-//       i++;
-//       if (i < messages.length) {
-//         timedLoop();
-//       }
-//     }, 2500);
-//   }
-//   timedLoop();
-// };
+const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
+  let i = 0;
+  function timedLoop() {
+    setTimeout(function() {
+      client.createMessage(msg.channel.id, messages[i]);
+      i++;
+      if (i < messages.length) {
+        timedLoop();
+      }
+    }, 800);
+  }
+  timedLoop();
+};
 
 const initMsgHandler = (pool: mysql.Pool) => {
   client.on('messageCreate', async msg => {
@@ -60,7 +74,13 @@ const initMsgHandler = (pool: mysql.Pool) => {
     }
 
     const res = await getResponse(pool, msg.cleanContent, msg);
-    if (res) {
+    if (!res) {
+      return;
+    }
+
+    if (Array.isArray(res)) {
+      sendMultipleMessages(msg, res);
+    } else {
       client.createMessage(msg.channel.id, res);
     }
   });

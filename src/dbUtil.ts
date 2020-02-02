@@ -1,4 +1,5 @@
 import mysql from 'mysql';
+import dayjs from 'dayjs';
 
 export const query = async <T>(
   conn: mysql.Pool | mysql.PoolConnection,
@@ -84,4 +85,4 @@ export const commit = (conn: mysql.PoolConnection): Promise<void> =>
   );
 
 export const dbNow = async (conn: mysql.Pool | mysql.PoolConnection) =>
-  query<{ 'NOW()': number }>(conn, 'SELECT NOW();').then(rows => rows[0]!['NOW()']);
+  query<{ 'NOW()': number }>(conn, 'SELECT NOW();').then(rows => dayjs(rows[0]!['NOW()']).toDate());

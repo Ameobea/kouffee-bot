@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc -m commonjs --outDir dist --declaration --allowJs false --rootDir src",
     "lint": "eslint src/**/*",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prettier": "prettier --write src/**/*"
   },
   "dependencies": {
     "@types/ramda": "^0.26.39",
@@ -23,6 +24,11 @@
     "ramda": "^0.26.1",
     "toml": "^3.0.0"
   },
+  "husky": {
+    "hooks": {
+      "pret-commit": "npm run prettier"
+    }
+  },
   "devDependencies": {
     "@types/mysql": "^2.15.8",
     "@types/node": "^13.1.4",
@@ -32,6 +38,8 @@
     "@typescript-eslint/parser": "^2.14.0",
     "eslint": "^6.0.0-rc.0",
     "eslint-config-prettier": "^6.9.0",
+    "husky": "^4.2.1",
+    "prettier": "^1.19.1",
     "typescript": "^3.7.4",
     "webpack-cli": "^4.0.0-beta.1"
   }

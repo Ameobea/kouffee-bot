@@ -5,7 +5,7 @@ import { randomInt } from '../util';
 
 const buildLink = (id: string) => `https://ameo.link/u/${id}.png`;
 
-export const getRandomAmeoLink = async (): Promise<string> => {
+export const getRandomAmeoLink = async (minIndex = 0, maxIndex = 10000): Promise<string> => {
   const val = await R.range(0, 20).reduce(
     (acc: Promise<string | undefined>): Promise<undefined | string> =>
       acc.then(async val => {
@@ -13,7 +13,8 @@ export const getRandomAmeoLink = async (): Promise<string> => {
           return val;
         }
 
-        const id = randomInt(0, 10000).toString(36);
+        const id = randomInt(minIndex, maxIndex).toString(36);
+        console.log({ id, minIndex, maxIndex });
         const url = buildLink(id);
         try {
           const res = await fetch(url, { method: 'HEAD' });

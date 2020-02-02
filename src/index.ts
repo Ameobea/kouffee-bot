@@ -4,7 +4,6 @@ import mysql from 'mysql';
 import { loadConf, CONF } from './conf';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
-import { pingExpochant } from './modules/expochant';
 import { roulette } from './modules/economy/gambling';
 
 const token = process.env.DISCORD_TOKEN;
@@ -33,27 +32,26 @@ const getResponse = async (
     return getTopBalances(pool);
   } else if (lowerMsg.startsWith(cmd('ameolink'))) {
     return getRandomAmeoLink();
-  } else if (lowerMsg.startsWith(cmd('expochant'))){
-    sendMultipleMessages(msg, await pingExpochant(lowerMsg));
-    return null;
-  } else if (lowerMsg.startsWith(cmd('roulette'))){
+  } else if (lowerMsg.startsWith(cmd('roulette'))) {
     return roulette(lowerMsg, pool, msg.author);
+  } else if (lowerMsg.startsWith(cmd('hazbin'))) {
+    return getRandomAmeoLink(Number.parseInt('74w', 36), Number.parseInt('7hh', 36));
   }
 };
 
-const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
-  let i = 0;
-  function timedLoop(){
-    setTimeout(function(){
-      client.createMessage(msg.channel.id, messages[i]);
-      i++;
-      if(i < messages.length){
-        timedLoop();
-      }
-    },2500);
-  }
-  timedLoop();
-}
+// const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
+//   let i = 0;
+//   function timedLoop() {
+//     setTimeout(function() {
+//       client.createMessage(msg.channel.id, messages[i]);
+//       i++;
+//       if (i < messages.length) {
+//         timedLoop();
+//       }
+//     }, 2500);
+//   }
+//   timedLoop();
+// };
 
 const initMsgHandler = (pool: mysql.Pool) => {
   client.on('messageCreate', async msg => {

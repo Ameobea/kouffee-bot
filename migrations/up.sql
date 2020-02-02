@@ -54,3 +54,13 @@ CREATE TABLE `ships_production-jobs` (
   `productionType` VARCHAR(191) NOT NULL
 ) ENGINE = InnoDB;
 ALTER TABLE `ships_production-jobs` ADD INDEX(`endTime` DESC);
+
+CREATE TABLE `ships_notifications` (
+  `userId` BIGINT NOT NULL,
+  `notificationType` VARCHAR(191) NOT NULL,
+  `guildId` BIGINT NOT NULL,
+  `channelId` BIGINT NOT NULL,
+  `notificationPayload` VARCHAR(191) NOT NULL,
+  `reminderTime` TIMESTAMP NOT NULL
+) ENGINE = InnoDB;
+ALTER TABLE `ships_notifications` ADD INDEX(`reminderTime` DESC);

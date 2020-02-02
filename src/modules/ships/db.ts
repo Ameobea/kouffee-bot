@@ -19,7 +19,7 @@ import {
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
 import { CONF } from '../../conf';
 
-const TableNames = {
+export const TableNames = {
   Fleet: 'ships_fleets',
   /**
    * Keeps track of fleet production tasks that have been queued.
@@ -30,6 +30,7 @@ const TableNames = {
    * Keeps track of economy upgrade tasks that have been queued.
    */
   ProductionJobs: 'ships_production-jobs',
+  Notifications: 'ships_notifications',
 } as const;
 
 const setFleet = (
@@ -150,7 +151,7 @@ export const queueProductionJob = async (
   pool: mysql.Pool,
   userId: string,
   productionType: keyof Production
-): Promise<Either<{ completionTime: Date }, { errorReason: string }>> => {
+): Promise<Either<{ completionTime: Date; upgradingToTier: number }, { errorReason: string }>> => {
   const conn = await getConn(pool);
 
   try {
@@ -167,21 +168,34 @@ export const queueProductionJob = async (
         const {
           checkpointTime,
           balances,
-          production: curProduction,
+          production: snapshottedProduction,
           productionJobsEndingAfterCheckpointTime,
         } = await getUserProductionAndBalancesState(conn, userId);
 
-        const { balances: liveBalances, production } = computeLiveUserProductionAndBalances(
+        const {
+          balances: liveBalances,
+          production: liveProduction,
+        } = computeLiveUserProductionAndBalances(
           now,
           checkpointTime,
           balances,
-          curProduction,
+          snapshottedProduction,
           productionJobsEndingAfterCheckpointTime
         );
 
+        // We find what level the user's production will be upgraded to after finishing the current upgrade queue so that
+        // we appropriately charge the user for the tier after that.
+        const maxQueuedUpgradeTier =
+          liveProduction[productionType] +
+          productionJobsEndingAfterCheckpointTime
+            // Only care about upgrade jobs for the production type currently being upgraded
+            .filter(R.propEq('productionType', productionType))
+            // Only care about jobs that haven't been accounted for when computing live production and balances
+            .filter(job => job.endTime.getTime() > nowTime).length;
+
         const { cost: upgradeCost, timeMs: upgradeTimeMs } = ProductionUpgradeCostGetters[
           productionType
-        ](curProduction[productionType]);
+        ](maxQueuedUpgradeTier);
         const insufficientResourceTypes = getHasSufficientBalance(upgradeCost, liveBalances);
         if (insufficientResourceTypes) {
           conn.rollback();
@@ -211,7 +225,7 @@ export const queueProductionJob = async (
           reject();
           return;
         }
-        await setProductionAndBalances(conn, userId, production, newBalances);
+        await setProductionAndBalances(conn, userId, liveProduction, newBalances);
 
         // Queue the production job
         const job: ProductionJob = {
@@ -223,7 +237,12 @@ export const queueProductionJob = async (
         await insertProductionJob(conn, userId, job);
 
         await commit(conn);
-        resolve(Either.left({ completionTime: new Date(endTime) }));
+        resolve(
+          Either.left({
+            completionTime: new Date(endTime),
+            upgradingToTier: liveProduction[productionType] + 1,
+          })
+        );
       });
     });
   } finally {

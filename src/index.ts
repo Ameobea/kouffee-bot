@@ -5,7 +5,7 @@ import { loadConf, CONF } from './conf';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { roulette } from './modules/economy/gambling';
-import { maybeHandleCommand } from './modules/ships/commands';
+import { maybeHandleCommand, init as initShips } from './modules/ships';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -43,8 +43,14 @@ const getResponse = async (
   const [first, ...rest] = lowerMsg.split(/\s+/g);
   console.log({ first, rest });
 
-  if (first && first.startsWith(cmd('ship'))) {
-    const shipsRes = await maybeHandleCommand(pool, msg.author.id, rest);
+  if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {
+    const shipsRes = await maybeHandleCommand({
+      pool,
+      userId: msg.author.id,
+      msg,
+      splitContent: rest,
+      client,
+    });
     if (shipsRes) {
       return shipsRes;
     } else {
@@ -101,6 +107,10 @@ const init = async () => {
     password: CONF.database.password,
     database: CONF.database.database,
   });
+
+  console.log('Initializing ships module...');
+  await initShips(client, pool);
+  console.log('Initialized ships module.');
 
   initMsgHandler(pool);
 

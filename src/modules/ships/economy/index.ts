@@ -35,7 +35,14 @@ export const getHasSufficientBalance = (cost: Balances, balances: Balances): str
   return R.isEmpty(missingNames) ? null : missingNames;
 };
 
-export const buildDefaultBalances = (): Balances => ({ tier1: 0, tier2: 0, tier3: 0, special1: 0 });
+export const buildEmptyBalances = (): Balances => ({ tier1: 0, tier2: 0, tier3: 0, special1: 0 });
+
+export const buildDefaultBalances = (): Balances => ({
+  tier1: 2000,
+  tier2: 1000,
+  tier3: 200,
+  special1: 0,
+});
 
 export interface Production {
   tier1: number;
@@ -60,7 +67,7 @@ export type ProductionJob = ProductionJobBase & {
 export const buildDefaultProduction = (): Production => ({ tier1: 1, tier2: 1, tier3: 1 });
 
 const computeIncome = (production: Production, durationMs: number): Balances => ({
-  ...buildDefaultBalances(),
+  ...buildEmptyBalances(),
   tier1: ProductionIncomeGetters.tier1(production.tier1, durationMs),
   tier2: ProductionIncomeGetters.tier2(production.tier2, durationMs),
   tier3: ProductionIncomeGetters.tier3(production.tier3, durationMs),
@@ -82,7 +89,7 @@ export const computeLiveUserProductionAndBalances = (
   );
 
   // We only care about production jobs that are finished
-  const finishedProductionJobs = sortedJobs.filter(job => job.endTime.getTime() >= nowTime);
+  const finishedProductionJobs = sortedJobs.filter(job => job.endTime.getTime() <= nowTime);
 
   // Process production for each segment between upgrades
   const {

@@ -2,7 +2,7 @@ import * as R from 'ramda';
 import Eris from 'eris';
 import mysql from 'mysql';
 import numeral from 'numeral';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { Option } from 'funfix-core';
 import { UnimplementedError } from 'ameo-utils/dist/util';
 
@@ -11,7 +11,12 @@ import { Fleet, computeLiveFleet } from './fleet';
 import { dbNow, getConn } from '../../dbUtil';
 import { CONF } from '../../conf';
 import { cmd } from '../..';
-import { computeLiveUserProductionAndBalances, Balances, Production } from './economy';
+import {
+  computeLiveUserProductionAndBalances,
+  Balances,
+  Production,
+  ProductionJob,
+} from './economy';
 import { ProductionIncomeGetters } from './economy/curves/production';
 import { setReminder, NotificationType } from './scheduler';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
@@ -40,7 +45,59 @@ ${CONF.ships.resource_names['special1']}: ${fmtCount(balances.special1)}
 \`\`\`
 `;
 
-const formatProduction = (production: Production): string => `
+const formatProductionJob = (job: ProductionJob, curTier: number, now: Dayjs): string =>
+  `\nUpgrade ${CONF.ships.resource_names[job.productionType]} Mine level ${curTier} -> ${curTier +
+    1}; Completes ${now.to(job.endTime)}`;
+
+const formatProductionUpgrades = (
+  liveProduction: Production,
+  now: Date,
+  productionJobs: ProductionJob[]
+): string | null => {
+  const nowDayjs = dayjs(now);
+  const nowTime = now.getTime();
+
+  const applicableProductionJobs = productionJobs.filter(job => job.endTime.getTime() > nowTime);
+  const [runningJob, ...pendingJobs] = applicableProductionJobs;
+  if (R.isNil(runningJob)) {
+    return null;
+  }
+
+  let msg = `
+
+Running production job:${formatProductionJob(
+    runningJob,
+    liveProduction[runningJob.productionType],
+    nowDayjs
+  )}`;
+
+  if (R.isEmpty(pendingJobs)) {
+    return msg;
+  }
+
+  msg += '\n\nPending production jobs:';
+  return pendingJobs.reduce(
+    ({ production, msg }, job) => {
+      return {
+        msg: msg + formatProductionJob(job, production[job.productionType], nowDayjs),
+        production: { ...production, [job.productionType]: production[job.productionType] + 1 },
+      };
+    },
+    {
+      production: {
+        ...liveProduction,
+        [runningJob.productionType]: liveProduction[runningJob.productionType] + 1,
+      },
+      msg,
+    }
+  ).msg;
+};
+
+const formatProduction = (
+  production: Production,
+  now: Date,
+  productionJobsEndingAfterCheckpointTime: ProductionJob[]
+): string => `
 \`\`\`
 ${CONF.ships.resource_names['tier1']} Mine: Level ${fmtCount(production.tier1)} (${numeral(
   ProductionIncomeGetters.tier1(production.tier1, 1000)
@@ -50,7 +107,11 @@ ${CONF.ships.resource_names['tier2']} Mine: Level ${fmtCount(production.tier2)} 
 ).format('1,000.0')}/sec)
 ${CONF.ships.resource_names['tier3']} Mine: Level ${fmtCount(production.tier3)} (${numeral(
   ProductionIncomeGetters.tier3(production.tier3, 1000)
-).format('1,000.0')}/sec)
+).format('1,000.0')}/sec)${formatProductionUpgrades(
+  production,
+  now,
+  productionJobsEndingAfterCheckpointTime
+) || ''}
 \`\`\`
 `;
 
@@ -123,7 +184,7 @@ const printCurProduction = async ({ pool, userId }: CommandHandlerArgs): Promise
       productionJobsEndingAfterCheckpointTime
     );
 
-    return formatProduction(liveProduction);
+    return formatProduction(liveProduction, now, productionJobsEndingAfterCheckpointTime);
   } finally {
     conn1.release();
     conn2.release();
@@ -250,9 +311,7 @@ const upgradeProduction = async ({
       );
     }
 
-    return `Upgrade queued!  Will complete in: ${dayjs(await dbNow(pool)).to(
-      dayjs(completionTime)
-    )}`;
+    return `Upgrade queued!  Will complete ${dayjs(await dbNow(pool)).to(dayjs(completionTime))}`;
   }, R.prop('errorReason'));
 };
 

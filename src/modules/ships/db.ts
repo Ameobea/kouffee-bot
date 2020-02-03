@@ -240,7 +240,7 @@ export const queueProductionJob = async (
         resolve(
           Either.left({
             completionTime: new Date(endTime),
-            upgradingToTier: liveProduction[productionType] + 1,
+            upgradingToTier: maxQueuedUpgradeTier + 1,
           })
         );
       });

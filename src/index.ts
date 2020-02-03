@@ -99,7 +99,7 @@ const init = async () => {
   await loadConf();
   console.log('Loaded config');
 
-  var pool = mysql.createPool({
+  const pool = mysql.createPool({
     connectionLimit: 10,
     host: CONF.database.host,
     user: CONF.database.username,

@@ -2,12 +2,13 @@
  * Handles setting timers for various events and handling timer state
  */
 
+import * as R from 'ramda';
 import Eris from 'eris';
 import mysql from 'mysql';
 import scheduler from 'node-schedule';
 import dayjs from 'dayjs';
 
-import { query, insert } from '../../dbUtil';
+import { query, insert, dbNow } from '../../dbUtil';
 import { CONF } from '../../conf';
 import { TableNames } from './db';
 import { Production } from './economy';
@@ -61,14 +62,25 @@ const sendNotification = (client: Eris.Client, notification: NotificationRow) =>
 };
 
 export const initTimers = async (client: Eris.Client, conn: mysql.Pool) => {
-  const remindersToSchedule = await query<NotificationRow>(
+  const notificationsToSchedule = await query<NotificationRow>(
     conn,
     `SELECT * FROM \`${TableNames.Notifications}\` WHERE reminderTime >= NOW();`,
     []
   );
-  remindersToSchedule.forEach(notification =>
-    scheduler.scheduleJob(notification.reminderTime, () => sendNotification(client, notification))
+  const now = await dbNow(conn);
+  const localNow = dayjs();
+  const offsetSeconds = localNow.diff(now, 'second');
+  notificationsToSchedule.forEach(notification =>
+    scheduler.scheduleJob(
+      dayjs(notification.reminderTime)
+        .add(offsetSeconds, 'second')
+        .toDate(),
+      () => sendNotification(client, notification)
+    )
   );
+  if (!R.isEmpty(notificationsToSchedule)) {
+    console.log(`Finished scheduling ${notificationsToSchedule.length} notifications`);
+  }
 };
 
 export const setReminder = async (

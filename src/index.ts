@@ -41,7 +41,6 @@ const getResponse = async (
   }
 
   const [first, ...rest] = lowerMsg.split(/\s+/g);
-  console.log({ first, rest });
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {
     const shipsRes = await maybeHandleCommand({

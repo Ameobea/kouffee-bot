@@ -4,10 +4,9 @@ import mysql from 'mysql';
 import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
 import { Option } from 'funfix-core';
-import { UnimplementedError } from 'ameo-utils/dist/util';
 
 import { getUserFleetState, getUserProductionAndBalancesState, queueProductionJob } from './db';
-import { Fleet, computeLiveFleet } from './fleet';
+import { Fleet, computeLiveFleet, queueFleetProduction, BuildableShip } from './fleet';
 import { dbNow, getConn } from '../../dbUtil';
 import { CONF } from '../../conf';
 import { cmd } from '../..';
@@ -202,6 +201,15 @@ const productionNameToKey = (name: string): keyof Production | null => {
     .orNull();
 };
 
+const buildableShipNameToKey = (name: string): BuildableShip | null => {
+  const processedName = name.trim().toLowerCase();
+  return Option.of(
+    Object.entries(CONF.ships.ship_names).find(([, name]) => processedName === name.toLowerCase())
+  )
+    .map(R.head)
+    .orNull();
+};
+
 const formatCost = (cost: Balances): string => {
   const sortedKeys: (keyof Balances)[] = [
     'tier1' as const,
@@ -290,12 +298,8 @@ const upgradeProduction = async ({
 
   const res = await queueProductionJob(pool, userId, productionKey);
   return res.fold<string | Promise<string>>(async ({ completionTime, upgradingToTier }) => {
-    const guildId = msg.member?.guild.id;
-    if (R.isNil(guildId)) {
-      console.error(
-        `ERROR: No guild-specific data for message received from user "${msg.author.id}"; not scheduling reminder for upgrade.`
-      );
-    } else {
+    const channel = msg.channel;
+    if (channel.type === 0) {
       await setReminder(
         client,
         pool,
@@ -303,20 +307,46 @@ const upgradeProduction = async ({
           userId,
           notificationType: NotificationType.ProductionUpgrade,
           notificationPayload: `${productionKey}-${upgradingToTier}`,
-          guildId,
+          guildId: channel.guild.id,
           channelId: msg.channel.id,
           reminderTime: completionTime,
         },
         await dbNow(pool)
       );
+    } else {
+      console.warn(`Unable to send notifications in channel type \`${channel.type}\``);
     }
 
     return `Upgrade queued!  Will complete ${dayjs(await dbNow(pool)).to(dayjs(completionTime))}`;
   }, R.prop('errorReason'));
 };
 
-const buildShips = ({}: CommandHandlerArgs) => {
-  throw new UnimplementedError();
+const buildFleet = async ({
+  client,
+  msg,
+  args,
+  userId,
+  pool,
+}: CommandHandlerArgs): Promise<string> => {
+  const [rawShipType, rawCount] = args;
+  const shipType = Option.of(rawShipType)
+    .map(buildableShipNameToKey)
+    .orNull();
+  const count = +rawCount;
+
+  if (R.isNil(shipType) || R.isNil(rawCount) || Number.isNaN(count)) {
+    return `Usage: \`-s build <ship type> <count>\``;
+  }
+
+  const conn = await getConn(pool);
+  try {
+    return queueFleetProduction(client, msg, conn, userId, shipType, count);
+  } catch (err) {
+    console.error('Error while building fleet: ', err);
+    return 'Error while queueing fleet for production';
+  } finally {
+    conn.release();
+  }
 };
 
 const CommandHandlers: {
@@ -324,6 +354,7 @@ const CommandHandlers: {
 } = {
   f: printCurFleet,
   fleet: printCurFleet,
+  build: buildFleet,
   bal: printCurBalances,
   balance: printCurBalances,
   balances: printCurBalances,
@@ -331,7 +362,6 @@ const CommandHandlers: {
   production: printCurProduction,
   up: upgradeProduction,
   upgrade: upgradeProduction,
-  build: buildShips,
 };
 
 export const maybeHandleCommand = ({

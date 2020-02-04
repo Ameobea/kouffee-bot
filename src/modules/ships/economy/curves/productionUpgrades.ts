@@ -40,4 +40,8 @@ export const ShipProductionCostGetters: {
   ship1: { cost: { tier1: 2500, tier2: 1000, tier3: 0, special1: 0 }, timeMs: 60 * 2 * 1000 },
   ship2: { cost: { tier1: 3000, tier2: 3000, tier3: 500, special1: 0 }, timeMs: 60 * 2 * 1000 },
   ship3: { cost: { tier1: 500, tier2: 5000, tier3: 1000, special1: 100 }, timeMs: 60 * 2 * 1000 },
+  shipSpecial1: {
+    cost: { tier1: 500000, tier2: 250000, tier3: 250000, special1: 500 },
+    timeMs: 60 * 60 * 12 * 1000,
+  },
 };

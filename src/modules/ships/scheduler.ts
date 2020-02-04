@@ -7,14 +7,17 @@ import Eris from 'eris';
 import mysql from 'mysql';
 import scheduler from 'node-schedule';
 import dayjs from 'dayjs';
+import numeral from 'numeral';
 
 import { query, insert, dbNow } from '../../dbUtil';
 import { CONF } from '../../conf';
 import { TableNames } from './db';
 import { Production } from './economy';
+import { BuildableShip } from './fleet';
 
 export enum NotificationType {
   ProductionUpgrade,
+  ShipBuild,
 }
 
 export interface NotificationRow {
@@ -34,6 +37,19 @@ const buildNotificationContent = (notification: NotificationRow): Eris.MessageCo
         string
       ] = notification.notificationPayload.split('-') as [keyof Production, string];
       return `<@${notification.userId}>: Your ${CONF.ships.resource_names[productionType]} upgrade to level ${level} is complete!`;
+    }
+    case NotificationType.ShipBuild: {
+      const [shipType, rawCount]: [BuildableShip, string] = notification.notificationPayload.split(
+        '-'
+      ) as [BuildableShip, string];
+      const count = +rawCount;
+      if (Number.isNaN(count)) {
+        throw new Error(`Failed to parse count in ship build notification row: "${rawCount}"`);
+      }
+
+      return `<@${notification.userId}>: The construction of your ${numeral(count).format(
+        '1,000'
+      )} ${CONF.ships.ship_names[shipType]} is complete!`;
     }
     default: {
       throw new Error(`Unhandled notification type: "${notification.notificationType}"`);

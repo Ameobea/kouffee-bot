@@ -1,10 +1,16 @@
 import * as R from 'ramda';
 import mysql from 'mysql';
 import { Either, Option } from 'funfix-core';
-import { UnimplementedError } from 'ameo-utils/dist/util';
 
 import { query, update, commit, dbNow, insert, getConn } from '../../dbUtil';
-import { Fleet, buildDefaultFleet, BuildableShip, FleetJob } from './fleet';
+import {
+  Fleet,
+  buildDefaultFleet,
+  BuildableShip,
+  FleetJob,
+  FleetJobRow,
+  FleetJobType,
+} from './fleet';
 import {
   Production,
   buildDefaultProduction,
@@ -17,7 +23,7 @@ import {
   subtractBalances,
 } from './economy';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
-import { CONF } from '../../conf';
+import { formatInsufficientResourceTypes } from '../../formatters';
 
 export const TableNames = {
   Fleet: 'ships_fleets',
@@ -48,7 +54,7 @@ const setFleet = (
     [userId, ship1, ship2, ship3, ship4, shipSpecial1, ship1, ship2, ship3, ship4, shipSpecial1]
   );
 
-const setProductionAndBalances = (
+export const setProductionAndBalances = (
   conn: mysql.PoolConnection,
   userId: string,
   { tier1: tier1Prod, tier2: tier2Prod, tier3: tier3Prod }: Production,
@@ -119,11 +125,50 @@ export const getUserFleetState = async (
     });
   });
 
-export const queueFleetJob = async (
-  shipType: BuildableShip,
-  shipCount: number
-): Promise<Either<{ completionTime: Date }, { errorReason: string }>> => {
-  throw new UnimplementedError(); // TODO
+export interface QueueFleetJobParams {
+  conn: mysql.Pool | mysql.PoolConnection;
+  userId: string;
+  shipType: BuildableShip;
+  shipCount: number;
+  startTime: Date;
+  endTime: Date;
+}
+
+/**
+ * Returns all fleet jobs for the specified user that finish after the specified time.
+ */
+export const getAllPendingOrRunningFleetJobs = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  userId: string,
+  endTime: Date
+): Promise<FleetJobRow[]> =>
+  query<FleetJobRow>(
+    conn,
+    `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime > ?;`,
+    [userId, endTime]
+  );
+
+export const queueFleetJob = async ({
+  conn,
+  userId,
+  shipType,
+  shipCount,
+  startTime,
+  endTime,
+}: QueueFleetJobParams) => {
+  const row: FleetJobRow = {
+    userId,
+    jobType: FleetJobType.BuildShip,
+    startTime,
+    endTime,
+    shipType,
+    shipCount,
+  };
+  return insert(
+    conn,
+    `INSERT INTO \`${TableNames.FleetJobs}\` (userId, jobType, startTime, endTime, shipType, shipCount) VALUES (?, ?, ?, ?, ?, ?);`,
+    [row.userId, row.jobType, row.startTime, row.endTime, row.shipType, row.shipCount]
+  );
 };
 
 const getLastQueuedProductionJob = (
@@ -201,9 +246,7 @@ export const queueProductionJob = async (
           conn.rollback();
           resolve(
             Either.right({
-              errorReason: `Insufficient resources of types: ${insufficientResourceTypes
-                .map((key: keyof Balances) => CONF.ships.resource_names[key])
-                .join(', ')}`,
+              errorReason: formatInsufficientResourceTypes(insufficientResourceTypes),
             })
           );
           return;

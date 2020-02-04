@@ -23,10 +23,20 @@ export const subtractBalances = (bal1: Balances, bal2: Balances): Balances => ({
   special1: bal1.special1 - bal2.special1,
 });
 
+export const multiplyBalances = (bal1: Balances, multiplier: number): Balances => ({
+  tier1: bal1.tier1 * multiplier,
+  tier2: bal1.tier2 * multiplier,
+  tier3: bal1.tier3 * multiplier,
+  special1: bal1.special1 * multiplier,
+});
+
 /**
  * Returns the names of all resources that are of insufficient quantities to fulfill `cost`.
  */
-export const getHasSufficientBalance = (cost: Balances, balances: Balances): string[] | null => {
+export const getHasSufficientBalance = (
+  cost: Balances,
+  balances: Balances
+): (keyof Balances)[] | null => {
   const missingNames = filterNils(
     Object.entries(balances).map(([key, val]: [keyof Balances, number]) =>
       cost[key] > val ? key : null

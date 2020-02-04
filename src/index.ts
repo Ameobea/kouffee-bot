@@ -6,7 +6,11 @@ import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { roulette } from './modules/economy/gambling';
 import { maybeHandleCommand, init as initShips } from './modules/ships';
-import { getCustomCommandResponse } from './modules/custom-command';
+import {
+  getCustomCommandResponse,
+  addCustomCommand,
+  removeCustomCommand,
+} from './modules/custom-command';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -31,6 +35,7 @@ const getResponse = async (
 
   const lowerMsgContent = lowerMsg.split(CONF.general.command_symbol)[1]!;
 
+  const [first, ...rest] = lowerMsg.split(/\s+/g);
   if (lowerMsgContent.startsWith('kouffee')) {
     return 'https://ameo.link/u/6zv.jpg';
   } else if (lowerMsgContent.startsWith('claim')) {
@@ -45,9 +50,17 @@ const getResponse = async (
     return roulette(lowerMsg, pool, msg.author);
   } else if (lowerMsg.startsWith(cmd('hazbin'))) {
     return getRandomAmeoLink(Number.parseInt('74w', 36), Number.parseInt('7hh', 36));
+  } else if (lowerMsg.startsWith(cmd('addcommand'))) {
+    const [first, command] = lowerMsg.split(' ');
+    return addCustomCommand(
+      pool,
+      rest[0],
+      lowerMsg.replace(first + ' ', '').replace(command + ' ', ''),
+      msg.author.id
+    );
+  } else if (lowerMsg.startsWith(cmd('removecommand'))) {
+    return removeCustomCommand(pool, rest[0], msg.author);
   }
-
-  const [first, ...rest] = lowerMsg.split(/\s+/g);
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {
     const shipsRes = await maybeHandleCommand({

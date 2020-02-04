@@ -8,9 +8,9 @@
   "license": "BSD3",
   "private": false,
   "scripts": {
-    "build": "tsc -m commonjs --outDir dist --declaration --allowJs false --rootDir src",
+    "build": "tsc -m commonjs --outDir dist --declaration --allowJs false --rootDir .",
     "lint": "eslint src/**/*",
-    "start": "node dist/index.js",
+    "start": "NODE_PATH=./dist node dist/src/index.js",
     "prettier": "prettier --write src/**/*"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
-import { Production, Balances } from '..';
-import { BuildableShip } from '../../fleet';
+import { Production, Balances } from 'src/modules/ships/economy';
+import { BuildableShip } from 'src/modules/ships/fleet';
 import { mkExpoCurve } from '.';
 
 export const ProductionUpgradeCostGetters: {

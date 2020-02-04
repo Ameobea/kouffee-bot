@@ -1,6 +1,7 @@
 import * as R from 'ramda';
-import { ProductionIncomeGetters } from './curves/production';
 import { filterNils } from 'ameo-utils/dist/util';
+
+import { ProductionIncomeGetters } from './curves/production';
 
 export interface Balances {
   tier1: number;

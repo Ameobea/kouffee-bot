@@ -5,11 +5,11 @@ import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
 import { Option } from 'funfix-core';
 
+import { dbNow, getConn } from 'src/dbUtil';
+import { CONF } from 'src/conf';
+import { cmd } from 'src';
 import { getUserFleetState, getUserProductionAndBalancesState, queueProductionJob } from './db';
 import { Fleet, computeLiveFleet, queueFleetProduction, BuildableShip } from './fleet';
-import { dbNow, getConn } from '../../dbUtil';
-import { CONF } from '../../conf';
-import { cmd } from '../..';
 import {
   computeLiveUserProductionAndBalances,
   Balances,
@@ -335,7 +335,7 @@ const buildFleet = async ({
   const count = +rawCount;
 
   if (R.isNil(shipType) || R.isNil(rawCount) || Number.isNaN(count)) {
-    return `Usage: \`-s build <ship type> <count>\``;
+    return 'Usage: \`-s build <ship type> <count>\`';
   }
 
   const conn = await getConn(pool);

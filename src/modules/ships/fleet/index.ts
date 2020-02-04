@@ -3,23 +3,23 @@ import numeral from 'numeral';
 import dayjs from 'dayjs';
 import Eris from 'eris';
 
-import { ShipProductionCostGetters } from '../economy/curves/productionUpgrades';
+import { ShipProductionCostGetters } from 'src/modules/ships/economy/curves/productionUpgrades';
 import {
   getUserProductionAndBalancesState,
   setProductionAndBalances,
   queueFleetJob,
   getAllPendingOrRunningFleetJobs,
-} from '../db';
-import { dbNow } from '../../../dbUtil';
+} from 'src/modules/ships/db';
+import { dbNow } from 'src/dbUtil';
 import {
   computeLiveUserProductionAndBalances,
   multiplyBalances,
   getHasSufficientBalance,
   subtractBalances,
-} from '../economy';
-import { formatInsufficientResourceTypes } from '../../../formatters';
-import { CONF } from '../../../conf';
-import { setReminder, NotificationType } from '../scheduler';
+} from 'src/modules/ships/economy';
+import { formatInsufficientResourceTypes } from 'src/modules/ships/formatters';
+import { CONF } from 'src/conf';
+import { setReminder, NotificationType } from 'src/modules/ships/scheduler';
 
 export type BuildableShip = 'ship1' | 'ship2' | 'ship3' | 'shipSpecial1';
 

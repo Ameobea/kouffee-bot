@@ -9,8 +9,8 @@ import scheduler from 'node-schedule';
 import dayjs from 'dayjs';
 import numeral from 'numeral';
 
-import { query, insert, dbNow } from '../../dbUtil';
-import { CONF } from '../../conf';
+import { query, insert, dbNow } from 'src/dbUtil';
+import { CONF } from 'src/conf';
 import { TableNames } from './db';
 import { Production } from './economy';
 import { BuildableShip } from './fleet';

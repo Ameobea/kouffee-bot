@@ -2,7 +2,8 @@ import * as R from 'ramda';
 import mysql from 'mysql';
 import { Either, Option } from 'funfix-core';
 
-import { query, update, commit, dbNow, insert, getConn } from '../../dbUtil';
+import { query, update, commit, dbNow, insert, getConn } from 'src/dbUtil';
+import { formatInsufficientResourceTypes } from 'src/modules/ships/formatters';
 import {
   Fleet,
   buildDefaultFleet,
@@ -23,7 +24,6 @@ import {
   subtractBalances,
 } from './economy';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
-import { formatInsufficientResourceTypes } from '../../formatters';
 
 export const TableNames = {
   Fleet: 'ships_fleets',
@@ -192,6 +192,80 @@ const insertProductionJob = (
     [userId, jobType, startTime, endTime, productionType]
   );
 
+/**
+ * Returns the current production state for the given user.  If no DB entries exist for it, initial state
+ * will be inserted.
+ */
+export const getUserProductionAndBalancesState = async (
+  conn: mysql.PoolConnection,
+  userId: string
+) =>
+  new Promise<{
+    checkpointTime: Date;
+    balances: Balances;
+    production: Production;
+    productionJobsEndingAfterCheckpointTime: ProductionJob[];
+  }>((resolve, reject) => {
+    conn.beginTransaction(async err => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      let [productionRes] = await query<{
+        tier1Prod: number;
+        tier2Prod: number;
+        tier3Prod: number;
+        tier1Bal: number;
+        tier2Bal: number;
+        tier3Bal: number;
+        special1Bal: number;
+        userId: string;
+        checkpointTime: Date;
+      }>(conn, `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ?;`, [userId]);
+      if (R.isNil(productionRes)) {
+        const production = buildDefaultProduction();
+        const balances = buildDefaultBalances();
+        productionRes = {
+          ...Object.fromEntries(
+            Object.entries(production).map(([key, val]) => [key + 'Prod', val])
+          ),
+          ...Object.fromEntries(Object.entries(balances).map(([key, val]) => [key + 'Bal', val])),
+          checkpointTime: await dbNow(conn),
+          userId,
+        } as any;
+        await setProductionAndBalances(conn, userId, production, balances);
+      }
+
+      const productionJobs = await query<{
+        userId: string;
+        jobType: ProductionJobType;
+        startTime: Date;
+        endTime: Date;
+        productionType: keyof Production;
+      }>(conn, `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? AND endTime > ?;`, [
+        userId,
+        productionRes.checkpointTime,
+      ]);
+
+      await commit(conn);
+      resolve({
+        checkpointTime: productionRes.checkpointTime,
+        production: Object.fromEntries(
+          Object.entries(productionRes)
+            .filter(([key]) => key.includes('Prod'))
+            .map(([key, val]) => [key.replace('Prod', ''), val])
+        ) as any,
+        balances: Object.fromEntries(
+          Object.entries(productionRes)
+            .filter(([key]) => key.includes('Bal'))
+            .map(([key, val]) => [key.replace('Bal', ''), val])
+        ) as any,
+        productionJobsEndingAfterCheckpointTime: productionJobs,
+      });
+    });
+  });
+
 export const queueProductionJob = async (
   pool: mysql.Pool,
   userId: string,
@@ -292,77 +366,3 @@ export const queueProductionJob = async (
     conn.release();
   }
 };
-
-/**
- * Returns the current production state for the given user.  If no DB entries exist for it, initial state
- * will be inserted.
- */
-export const getUserProductionAndBalancesState = async (
-  conn: mysql.PoolConnection,
-  userId: string
-) =>
-  new Promise<{
-    checkpointTime: Date;
-    balances: Balances;
-    production: Production;
-    productionJobsEndingAfterCheckpointTime: ProductionJob[];
-  }>((resolve, reject) => {
-    conn.beginTransaction(async err => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      let [productionRes] = await query<{
-        tier1Prod: number;
-        tier2Prod: number;
-        tier3Prod: number;
-        tier1Bal: number;
-        tier2Bal: number;
-        tier3Bal: number;
-        special1Bal: number;
-        userId: string;
-        checkpointTime: Date;
-      }>(conn, `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ?;`, [userId]);
-      if (R.isNil(productionRes)) {
-        const production = buildDefaultProduction();
-        const balances = buildDefaultBalances();
-        productionRes = {
-          ...Object.fromEntries(
-            Object.entries(production).map(([key, val]) => [key + 'Prod', val])
-          ),
-          ...Object.fromEntries(Object.entries(balances).map(([key, val]) => [key + 'Bal', val])),
-          checkpointTime: await dbNow(conn),
-          userId,
-        } as any;
-        await setProductionAndBalances(conn, userId, production, balances);
-      }
-
-      const productionJobs = await query<{
-        userId: string;
-        jobType: ProductionJobType;
-        startTime: Date;
-        endTime: Date;
-        productionType: keyof Production;
-      }>(conn, `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? AND endTime > ?;`, [
-        userId,
-        productionRes.checkpointTime,
-      ]);
-
-      await commit(conn);
-      resolve({
-        checkpointTime: productionRes.checkpointTime,
-        production: Object.fromEntries(
-          Object.entries(productionRes)
-            .filter(([key]) => key.includes('Prod'))
-            .map(([key, val]) => [key.replace('Prod', ''), val])
-        ) as any,
-        balances: Object.fromEntries(
-          Object.entries(productionRes)
-            .filter(([key]) => key.includes('Bal'))
-            .map(([key, val]) => [key.replace('Bal', ''), val])
-        ) as any,
-        productionJobsEndingAfterCheckpointTime: productionJobs,
-      });
-    });
-  });

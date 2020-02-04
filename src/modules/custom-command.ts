@@ -2,8 +2,8 @@ import * as R from 'ramda';
 import mysql from 'mysql';
 import Eris from 'eris';
 
-import { insert, query, _delete } from '../dbUtil';
-import { CONF } from '../conf';
+import { insert, query, _delete } from 'src/dbUtil';
+import { CONF } from 'src/conf';
 
 /**
  * Adds the functionality of adding/removing simple custom commands that display text in response to a keyword

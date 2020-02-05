@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
-    "module": "amd",
+    "declaration": true,
+    "module": "CommonJS",
     "target": "es6",
     "resolveJsonModule": true,
-    "allowJs": true,
+    "allowJs": false,
     "moduleResolution": "node",
     "outDir": "dist",
     "lib": ["esnext"],

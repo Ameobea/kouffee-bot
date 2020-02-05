@@ -147,7 +147,7 @@ export const queueFleetProduction = async (
           (acc, job) => (job.endTime.getTime() > acc.getTime() ? job.endTime : acc),
           now
         );
-        const completionTime = dayjs(now)
+        const completionTime = dayjs(startTime)
           .add(timeMsPerShip * count, 'millisecond')
           .toDate();
         await queueFleetJob({

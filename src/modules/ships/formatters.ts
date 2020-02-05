@@ -1,5 +1,5 @@
-import { Balances } from './modules/ships/economy';
-import { CONF } from './conf';
+import { Balances } from 'src/modules/ships/economy';
+import { CONF } from 'src/conf';
 
 export const formatInsufficientResourceTypes = (
   insufficientResourceTypes: (keyof Balances)[]

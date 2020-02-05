@@ -111,7 +111,7 @@ export const getUserFleetState = async (
 
       let [fleetRes] = await query<Fleet & { userId: string; checkpointTime: Date }>(
         conn,
-        `SELECT * FROM \`${TableNames.Fleet}\` WHERE userId = ?;`,
+        `SELECT * FROM \`${TableNames.Fleet}\` WHERE userId = ? FOR UPDATE;`,
         [userId]
       );
       if (R.isNil(fleetRes)) {
@@ -121,7 +121,7 @@ export const getUserFleetState = async (
 
       const fleetJobs = await query<FleetJob>(
         conn,
-        `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime >= ?;`,
+        `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime >= ? FOR UPDATE;`,
         [userId, fleetRes.checkpointTime]
       );
 
@@ -149,7 +149,7 @@ export const getAllPendingOrRunningFleetJobs = async (
 ): Promise<FleetJobRow[]> =>
   query<FleetJobRow>(
     conn,
-    `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime > ?;`,
+    `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime > ? FOR UPDATE;`,
     [userId, endTime]
   );
 
@@ -182,7 +182,11 @@ const getLastQueuedProductionJob = (
 ): Promise<ProductionJob | undefined> =>
   query<ProductionJob>(
     conn,
-    `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? ORDER BY endTime DESC LIMIT 1;`,
+    // `FOR UPDATE` is used here to ensure exclusive access to production jobs for a given user to a single connection.
+    // Since we depend on the full set of rows in that table for the user as input and any insertions invalidate our
+    // business logic, we need to make sure nobody else looks at the same state as us simultaneously and inserts
+    // the same rows as us based off of it.
+    `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? ORDER BY endTime DESC LIMIT 1 FOR UPDATE;`,
     [userId]
   ).then(R.head);
 
@@ -227,7 +231,13 @@ export const getUserProductionAndBalancesState = async (
         special1Bal: number;
         userId: string;
         checkpointTime: Date;
-      }>(conn, `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ?;`, [userId]);
+      }>(
+        conn,
+        // `FOR UPDATE` read-and-write locks all production rows for the user.  This prevents any other connections
+        // from looking at the current production for a user and making invalid assumptions.
+        `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ? FOR UPDATE;`,
+        [userId]
+      );
       if (R.isNil(productionRes)) {
         const production = buildDefaultProduction();
         const balances = buildDefaultBalances();
@@ -248,10 +258,14 @@ export const getUserProductionAndBalancesState = async (
         startTime: Date;
         endTime: Date;
         productionType: keyof Production;
-      }>(conn, `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? AND endTime > ?;`, [
-        userId,
-        productionRes.checkpointTime,
-      ]);
+      }>(
+        conn,
+        // `FOR UPDATE` locks the production jobs for the current user for reading and writing.  We need to deal with
+        // all production jobs for the user atomically since all production rows are input for logic involving
+        // queueing production jobs, editing production stats, etc.
+        `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? AND endTime > ? FOR UPDATE;`,
+        [userId, productionRes.checkpointTime]
+      );
 
       await commit(conn);
       resolve({
@@ -378,10 +392,14 @@ export const getInventoryForPlayer = async (
 ): Promise<Item[]> =>
   query(
     conn,
+    // This should hopefully lock the full inventory and inventory metadata for a given player for both reading and writing.
+    //
+    // Only one connection should have access to user inventory state at a time.
     `SELECT \`${TableNames.Inventory}\`.itemId, \`${TableNames.Inventory}\`.count, \`${TableNames.Inventory}\`.tier, \`${TableNames.InventoryMetadata}\`.data
     FROM \`${TableNames.Inventory}\`
     LEFT JOIN \`${TableNames.InventoryMetadata}\` ON \`${TableNames.Inventory}\`.metadataKey = \`${TableNames.InventoryMetadata}\`.id
-    WHERE userId = ?;`,
+    WHERE userId = ?
+    FOR UPDATE;`,
     [userId]
   ).then(rows =>
     rows.map(
@@ -453,6 +471,10 @@ export const getActiveRaid = async (
 ): Promise<Option<RaidRow>> =>
   query<RaidRow>(
     conn,
-    `SELECT * FROM \`${TableNames.Raids}\` WHERE userId = ? AND returnTime < NOW();`,
+    // `FOR UPDATE` is used here to prevent race conditions between multiple attempts to queue raids for the same
+    // user.  Only one connection will be able to read the raid rows for `userId` at a time, preventing
+    // multiple raids from getting started at once.
+    `SELECT * FROM \`${TableNames.Raids}\` WHERE userId = ? AND returnTime > NOW()
+    FOR UPDATE;`,
     [userId]
   ).then(([row]) => Option.of(row));

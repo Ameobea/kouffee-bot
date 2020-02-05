@@ -35,3 +35,16 @@ shipSpecial1 = "Dreadnaught"
 3 = "Rare"
 4 = "Epic"
 5 = "Legendary"
+
+[ships.raid_location_names]
+[ships.raid_location_names.0]
+name = "Kasdard"
+description = "A solar system that was once home to an expansive mining operation.  Now idle, it still holds considerable unexploited mineral riches."
+
+[ships.raid_location_names.1]
+name = "The Abyss"
+description = "An uncharted expanse of starless space hundreds of light years across, obscured by dense clouds of dark gas and dust.  It is littered with the ruins of an ancient war that decimated dozens of worlds."
+
+[ships.raid_location_names.2]
+name = "Sacellum Tenebris"
+description = "A religious site from a lost civilization.  Reachable only via a forgotten hyperspace corridor, it has remained mostly untouched for eons."

@@ -1,6 +1,10 @@
 import path from 'path';
 import fs from 'fs';
 import YAML from 'yaml';
+import { parse } from '@ctrl/golang-template';
+import { Option } from 'funfix-core';
+
+import { CONF } from 'src/conf';
 
 export enum Tier {
   Tier1,
@@ -45,7 +49,18 @@ export const initItemData = async () => {
   );
 
   try {
-    const allItems: ItemDefinition[] = YAML.parse(fileContent);
+    const allItems: ItemDefinition[] = YAML.parse(fileContent).map(
+      (def: ItemDefinition): ItemDefinition => ({
+        ...def,
+        // The `name` and `description` fields can be templated, using the global app config object as input.
+        //
+        // They are templated using golang's templating scheme.
+        name: parse(def.name, CONF),
+        description: Option.of(def.description)
+          .map(description => parse(description, CONF))
+          .orUndefined(),
+      })
+    );
 
     allItems.forEach(itemDef => {
       if (ITEMS_BY_ID.has(itemDef.id)) {

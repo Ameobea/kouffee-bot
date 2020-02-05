@@ -52,6 +52,10 @@ const buildNotificationContent = (notification: NotificationRow): Eris.MessageCo
         '1,000'
       )} ${CONF.ships.ship_names[shipType]} is complete!`;
     }
+    case NotificationType.RaidReturn: {
+      // TODO: Include the raid's loot in the message.  We also must compute that ahead of time...
+      return 'Your raid has returned!  Your fleet is available for another raid.  TODO: Include raid loot and info about the raid';
+    }
     default: {
       throw new Error(`Unhandled notification type: "${notification.notificationType}"`);
     }

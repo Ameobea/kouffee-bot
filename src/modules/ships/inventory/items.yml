@@ -1,20 +1,52 @@
-# RAID REWARDS
+# Raid Rewards
 - name: 'Power Crystal'
-  id: 0
+  id: 5000
   isTiered: true
 - name: 'Hyperspace Engine Fuel'
-  id: 1
+  id: 5001
 - name: 'Ancient Resource Cache'
-  id: 2
+  id: 5002
   isTiered: true
 - name: 'Alien Artifact'
-  id: 4
+  id: 5004
   isTiered: true
 - name: 'Dreadnaught Core'
-  id: 5
+  id: 5005
   isTiered: true
   description: 'This powerful object was found in an ancient alien patrol ship, still humming with energy after thousands of years of inactivity. It can be used to construct a Dreadnaught.'
 - name: 'Mothership Core'
-  id: 6
+  id: 5006
   isTiered: true
   description: 'This incredibly powerful artifact is left over from a lost civilization.  Once used to power an entire planet, it can be re-purposed to power a ship of incredible power.'
+
+# Location-Mastery Raid Rewards
+- name: '{{ .ships.raid_location_names.0.name }} Obelisk'
+  id: 6000
+  isTiered: false
+  description: 'A pale blue obelisk found within the expanse of {{ .ships.raid_location_names.0.name }}'
+- name: '{{ .ships.raid_location_names.1.name }} Obelisk'
+  id: 6001
+  isTiered: false
+  description: 'A towering black obelisk emenating an ominous aura, dredged from the depths of {{ .ships.raid_location_names.1.name }}'
+
+# Location-Specific Raid Reward Caskets
+- name: '{{ .ships.raid_location_names.0.name }} Raid Loot'
+  id: 1000
+  isTiered: false
+  description: 'A cache of resources found in {{ .ships.raid_location_names.0.name }}'
+- name: '{{ .ships.raid_location_names.1.name }} Raid Loot'
+  id: 1001
+  isTiered: false
+  description: 'A collection of loot scavenged from {{ .ships.raid_location_names.1.name }}'
+- name: '{{ .ships.raid_location_names.2.name }} Raid Loot'
+  id: 1002
+  isTiered: false
+  description: 'A trove of precious items looted from {{ .ships.raid_location_names.2.name }}'
+
+# Raid Progression Unlock Items
+- name: 'Hyperspace Corridor Chart'
+  id: 2000
+  description: 'A chart of a long-forgotten hyperspace corridor.  Unlocks the path to {{ .ships.raid_location_names.2.name }}'
+- name: 'Broad-Band Sensor Apparatus'
+  id: 2001
+  description: 'An incredibly advanced sensor that provides fleets the ability to navigate {{ .ships.raid_location_names.1.name }}'

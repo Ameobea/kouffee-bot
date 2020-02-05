@@ -743,6 +743,11 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@ctrl/golang-template@^1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@ctrl/golang-template/-/golang-template-1.3.1.tgz#cce752df9b69c6f606e8afd8e68c96808053f224"
+  integrity sha512-mD0MbUnqEtoCYKy3XKZXys+Ce9PUlYeA/1Ljed2j4lQPo3kPve8PvakAZjEm7Z2moVBW/QlZNSQlc9YktEF9yg==
+
 "@jest/console@^24.7.1", "@jest/console@^24.9.0":
   version "24.9.0"
   resolved "https://registry.yarnpkg.com/@jest/console/-/console-24.9.0.tgz#79b1bc06fb74a8cfb01cbdedf945584b1b9707f0"

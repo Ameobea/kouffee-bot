@@ -52,9 +52,14 @@ export const loadConf = async () => {
   }
 };
 
+export interface RaidLocationDescriptor {
+  name: string;
+  description: string;
+}
+
 export interface ShipsConf {
   resource_names: { [K in keyof Balances]: string };
   ship_names: { [K in keyof Fleet]: string };
   tier_names: { [K in Tier]: string };
-  raid_location_names: { [K in RaidLocation]: string };
+  raid_location_names: { [K in RaidLocation]: RaidLocationDescriptor };
 }

@@ -1,0 +1,20 @@
+# RAID REWARDS
+- name: 'Power Crystal'
+  id: 0
+  isTiered: true
+- name: 'Hyperspace Engine Fuel'
+  id: 1
+- name: 'Ancient Resource Cache'
+  id: 2
+  isTiered: true
+- name: 'Alien Artifact'
+  id: 4
+  isTiered: true
+- name: 'Dreadnaught Core'
+  id: 5
+  isTiered: true
+  description: 'This powerful object was found in an ancient alien patrol ship, still humming with energy after thousands of years of inactivity. It can be used to construct a Dreadnaught.'
+- name: 'Mothership Core'
+  id: 6
+  isTiered: true
+  description: 'This incredibly powerful artifact is left over from a lost civilization.  Once used to power an entire planet, it can be re-purposed to power a ship of incredible power.'

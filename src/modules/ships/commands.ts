@@ -4,21 +4,39 @@ import mysql from 'mysql';
 import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
 import { Option } from 'funfix-core';
+import { PromiseResolveType } from 'ameo-utils/dist/types';
 
 import { dbNow, getConn } from 'src/dbUtil';
 import { CONF } from 'src/conf';
 import { cmd } from 'src';
-import { getUserFleetState, getUserProductionAndBalancesState, queueProductionJob } from './db';
-import { Fleet, computeLiveFleet, queueFleetProduction, BuildableShip } from './fleet';
+import {
+  getUserFleetState,
+  getUserProductionAndBalancesState,
+  queueProductionJob,
+  getInventoryForPlayer,
+  getActiveRaid,
+  RaidDurationTier,
+  insertRaid,
+} from './db';
+import {
+  Fleet,
+  computeLiveFleet,
+  queueFleetProduction,
+  AllBuildableShipTypes,
+  BuildableShip,
+} from './fleet';
 import {
   computeLiveUserProductionAndBalances,
   Balances,
   Production,
   ProductionJob,
+  buildDefaultProduction,
 } from './economy';
 import { ProductionIncomeGetters } from './economy/curves/production';
 import { setReminder, NotificationType } from './scheduler';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
+import { formatInventory, getRaidTimeDurString } from './formatters';
+import { getAvailableRaidLocations, RaidLocation } from './raids';
 
 const fmtCount = (count: number): string =>
   numeral(count).format(count > 10000 ? '1,000.0a' : '1,000');
@@ -190,25 +208,67 @@ const printCurProduction = async ({ pool, userId }: CommandHandlerArgs): Promise
   }
 };
 
-const productionNameToKey = (name: string): keyof Production | null => {
+const mkNameToKey = <T extends { [key: string]: string }>(map: T, isNumericKey = false) => (
+  name: string
+): keyof T | null => {
   const processedName = name.trim().toLowerCase();
   return Option.of(
-    Object.entries(CONF.ships.resource_names).find(
-      ([, name]) => processedName === name.toLowerCase()
-    )
+    Object.entries(map).find(([, name]) => name.toLowerCase().startsWith(processedName))
   )
     .map(R.head)
+    .map(k => (isNumericKey ? +k : k))
     .orNull();
 };
 
-const buildableShipNameToKey = (name: string): BuildableShip | null => {
-  const processedName = name.trim().toLowerCase();
-  return Option.of(
-    Object.entries(CONF.ships.ship_names).find(([, name]) => processedName === name.toLowerCase())
-  )
-    .map(R.head)
-    .orNull();
+type ArgsOf<T> = T extends (...args: infer A) => any ? A : never;
+
+const lazyHOF = <F extends (...args: any) => any, T extends (...args: any) => F>(
+  hof: T,
+  getHOFArgs: () => ArgsOf<T>
+): F => {
+  let fn: F | null = null;
+
+  return (((...args: ArgsOf<F>) => {
+    if (!fn) {
+      fn = hof(...(getHOFArgs() as any));
+    }
+
+    return fn(...(args as any));
+  }) as any) as ReturnType<T>;
 };
+
+const productionKeys = Object.keys(buildDefaultProduction());
+const productionNameToKey = lazyHOF<(k: string) => keyof Production | null, any>(
+  mkNameToKey,
+  () => [
+    Object.fromEntries(
+      Object.entries(CONF.ships.resource_names).filter(([key]: [keyof Production, string]) =>
+        productionKeys.includes(key)
+      )
+    ) as { [K in keyof Production]: string },
+  ]
+);
+const buildableShipNameToKey = lazyHOF<(k: string) => BuildableShip | null, any>(
+  mkNameToKey,
+  () => [
+    Object.fromEntries(
+      Object.entries(CONF.ships.ship_names).filter(([key]: [BuildableShip, string]) =>
+        AllBuildableShipTypes.includes(key)
+      )
+    ) as { [K in BuildableShip]: string },
+  ]
+);
+const raidLocationToKey = lazyHOF<(k: string) => RaidLocation | null, any>(mkNameToKey, () => [
+  CONF.ships.raid_location_names,
+  true,
+]);
+const raidDurationToKey = lazyHOF<(k: string) => RaidDurationTier | null, any>(mkNameToKey, () => [
+  {
+    [RaidDurationTier.Short]: 'short',
+    [RaidDurationTier.Medium]: 'medium',
+    [RaidDurationTier.Long]: 'long',
+  },
+]);
 
 const formatCost = (cost: Balances): string => {
   const sortedKeys: (keyof Balances)[] = [
@@ -349,6 +409,132 @@ const buildFleet = async ({
   }
 };
 
+const printInventory = async ({ pool, userId }: CommandHandlerArgs): Promise<string | string[]> => {
+  const inventoryForPlayer = await getInventoryForPlayer(pool, userId);
+  return formatInventory(inventoryForPlayer);
+};
+
+const formatRaidLocations = (names: RaidLocation[]): string =>
+  names.map(loc => CONF.ships.raid_location_names[loc]).join(', ');
+
+const getRaidDurationMs = (durationTier: RaidDurationTier): number =>
+  ({
+    [RaidDurationTier.Short]: 45 * 60 * 1000,
+    [RaidDurationTier.Medium]: 2 * 60 * 60 * 1000,
+    [RaidDurationTier.Long]: 8 * 60 * 60 * 1000,
+  }[durationTier]);
+
+const raid = async ({
+  userId,
+  pool,
+  args,
+  client,
+  msg,
+}: CommandHandlerArgs): Promise<string | string[]> => {
+  const [rawLocation, rawDuration] = args;
+
+  if (R.isNil(rawLocation)) {
+    const activeRaid = await getActiveRaid(pool, userId);
+
+    if (activeRaid.isEmpty()) {
+      const availableRaidLocations = await getAvailableRaidLocations(userId);
+
+      return [
+        `You have no active raid.  You have access to the following raid locations: ${formatRaidLocations(
+          availableRaidLocations
+        )}`,
+        `You can start a raid with \`${cmd('raid')} <location> <short|med|long>\``,
+      ];
+    } else {
+      const raid = activeRaid.get();
+      const now = await dbNow(pool);
+      const remainingTimeString = dayjs(now).to(dayjs(raid.returnTime));
+
+      return `You have an active ${getRaidTimeDurString(raid.durationTier)} raid to ${
+        CONF.ships.raid_location_names[raid.location]
+      }.  It will return ${remainingTimeString}`;
+    }
+  }
+
+  const userFleetReq = new Promise<PromiseResolveType<ReturnType<typeof getUserFleetState>>>(
+    async (resolve, reject) => {
+      const conn = await getConn(pool);
+
+      try {
+        resolve(await getUserFleetState(conn, userId));
+      } catch (err) {
+        reject(err);
+        return;
+      } finally {
+        conn.release();
+      }
+    }
+  );
+
+  const availableRaidLocations = await getAvailableRaidLocations(userId);
+  const location = raidLocationToKey(rawLocation);
+  if (location === null) {
+    return `Unknown raid location.  Available raid locations: ${formatRaidLocations(
+      availableRaidLocations
+    )}`;
+  } else if (!availableRaidLocations.includes(location)) {
+    return `Location unavailable.  Available raid locations: ${formatRaidLocations(
+      availableRaidLocations
+    )}`;
+  }
+
+  const durationTier = raidDurationToKey(rawDuration);
+  if (durationTier === null) {
+    return `Invalid raid duration; must be one of short, medium, long`;
+  }
+
+  const [now, { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime }] = await Promise.all([
+    dbNow(pool),
+    userFleetReq,
+  ] as const);
+  const liveFleet = await computeLiveFleet(
+    now,
+    checkpointFleet,
+    fleetJobsEndingAfterCheckpointTime
+  );
+
+  const departureTime = now;
+  const returnTime = dayjs(departureTime)
+    .add(getRaidDurationMs(durationTier), 'ms')
+    .toDate();
+
+  await insertRaid(pool, {
+    userId,
+    durationTier,
+    location,
+    departureTime,
+    returnTime,
+    ...liveFleet,
+  });
+
+  if (msg.channel.type === 0) {
+    setReminder(
+      client,
+      pool,
+      {
+        userId,
+        notificationType: NotificationType.RaidReturn,
+        guildId: msg.channel.guild.id,
+        channelId: msg.channel.id,
+        notificationPayload: '',
+        reminderTime: returnTime,
+      },
+      now
+    );
+  } else {
+    console.warn(
+      'Raid dispatch message received on non-text channel or something; not setting notification.'
+    );
+  }
+
+  return `Raid has been dispatched!  It will return ${dayjs(now).to(returnTime)}`;
+};
+
 const CommandHandlers: {
   [command: string]: (args: CommandHandlerArgs) => Promise<string | string[]>;
 } = {
@@ -362,6 +548,9 @@ const CommandHandlers: {
   production: printCurProduction,
   up: upgradeProduction,
   upgrade: upgradeProduction,
+  inv: printInventory,
+  inventory: printInventory,
+  raid,
 };
 
 export const maybeHandleCommand = ({

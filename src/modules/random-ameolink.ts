@@ -14,7 +14,6 @@ export const getRandomAmeoLink = async (minIndex = 0, maxIndex = 10000): Promise
         }
 
         const id = randomInt(minIndex, maxIndex).toString(36);
-        console.log({ id, minIndex, maxIndex });
         const url = buildLink(id);
         try {
           const res = await fetch(url, { method: 'HEAD' });

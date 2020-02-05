@@ -3,6 +3,8 @@ import fs from 'fs';
 import toml from 'toml';
 import { Balances } from './modules/ships/economy';
 import { Fleet } from './modules/ships/fleet';
+import { Tier } from './modules/ships/inventory/item';
+import { RaidLocation } from './modules/ships/raids';
 
 export interface DatabaseConf {
   host: string;
@@ -53,4 +55,6 @@ export const loadConf = async () => {
 export interface ShipsConf {
   resource_names: { [K in keyof Balances]: string };
   ship_names: { [K in keyof Fleet]: string };
+  tier_names: { [K in Tier]: string };
+  raid_location_names: { [K in RaidLocation]: string };
 }

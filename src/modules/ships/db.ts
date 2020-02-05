@@ -24,6 +24,8 @@ import {
   subtractBalances,
 } from './economy';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
+import { Item } from './inventory/item';
+import { RaidLocation } from './raids';
 
 export const TableNames = {
   Fleet: 'ships_fleets',
@@ -37,6 +39,9 @@ export const TableNames = {
    */
   ProductionJobs: 'ships_production-jobs',
   Notifications: 'ships_notifications',
+  Inventory: 'ships_inventory',
+  InventoryMetadata: 'ships_inventory-metadata',
+  Raids: 'ships_raids',
 } as const;
 
 const setFleet = (
@@ -366,3 +371,88 @@ export const queueProductionJob = async (
     conn.release();
   }
 };
+
+export const getInventoryForPlayer = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  userId: string
+): Promise<Item[]> =>
+  query(
+    conn,
+    `SELECT \`${TableNames.Inventory}\`.itemId, \`${TableNames.Inventory}\`.count, \`${TableNames.Inventory}\`.tier, \`${TableNames.InventoryMetadata}\`.data
+    FROM \`${TableNames.Inventory}\`
+    LEFT JOIN \`${TableNames.InventoryMetadata}\` ON \`${TableNames.Inventory}\`.metadataKey = \`${TableNames.InventoryMetadata}\`.id
+    WHERE userId = ?;`,
+    [userId]
+  ).then(rows =>
+    rows.map(
+      ({
+        itemId,
+        count,
+        tier,
+        data,
+      }: {
+        itemId: number;
+        count: number;
+        tier: number | null;
+        data: string | null;
+      }): Item => ({ id: itemId, count, tier: R.isNil(tier) ? undefined : tier, metadata: data })
+    )
+  );
+
+export enum RaidDurationTier {
+  Short,
+  Medium,
+  Long,
+}
+
+export interface RaidRow extends Fleet {
+  userId: string;
+  durationTier: RaidDurationTier;
+  location: RaidLocation;
+  departureTime: Date;
+  returnTime: Date;
+}
+
+export const insertRaid = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  {
+    userId,
+    durationTier,
+    location,
+    departureTime,
+    returnTime,
+    ship1,
+    ship2,
+    ship3,
+    ship4,
+    shipSpecial1,
+  }: RaidRow
+) =>
+  insert(
+    conn,
+    `INSERT INTO \`${TableNames.Raids}\`
+    (userId, durationTier, location, departureTime, returnTime, ship1, ship2, ship3, ship4, shipSpecial1)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+    [
+      userId,
+      durationTier,
+      location,
+      departureTime,
+      returnTime,
+      ship1,
+      ship2,
+      ship3,
+      ship4,
+      shipSpecial1,
+    ]
+  );
+
+export const getActiveRaid = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  userId: string
+): Promise<Option<RaidRow>> =>
+  query<RaidRow>(
+    conn,
+    `SELECT * FROM \`${TableNames.Raids}\` WHERE userId = ? AND returnTime < NOW();`,
+    [userId]
+  ).then(([row]) => Option.of(row));

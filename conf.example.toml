@@ -27,3 +27,11 @@ ship2 = "Interceptor"
 ship3 = "Frigate"
 ship4 = "Carrier"
 shipSpecial1 = "Dreadnaught"
+
+[ships.tier_names]
+0 = "Common"
+1 = "Uncommon"
+2 = "Unusual"
+3 = "Rare"
+4 = "Epic"
+5 = "Legendary"

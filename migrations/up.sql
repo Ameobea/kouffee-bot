@@ -65,6 +65,39 @@ CREATE TABLE `ships_notifications` (
 ) ENGINE = InnoDB;
 ALTER TABLE `ships_notifications` ADD INDEX(`reminderTime` DESC);
 
+CREATE TABLE `ships_inventory` (
+  `userId` BIGINT NOT NULL,
+  `itemId` INT NOT NULL,
+  `count` BIGINT NOT NULL,
+  `metadataKey` BIGINT NULL,
+  `tier` TINYINT NULL
+) ENGINE = InnoDB;
+ALTER TABLE `ships_inventory` ADD INDEX(`userId` DESC);
+ALTER TABLE `ships_inventory` ADD INDEX(`metadataKey` ASC);
+
+CREATE TABLE `ships_inventory-metadata` (
+  `id` BIGINT NOT NULL,
+  `data` TEXT NOT NULL,
+  FOREIGN KEY (id)
+    REFERENCES ships_inventory(metadataKey)
+    ON DELETE CASCADE
+) ENGINE = InnoDB;
+ALTER TABLE `ships_inventory-metadata` ADD PRIMARY KEY(`id`);
+
+CREATE TABLE `ships_raids` (
+  `userId` BIGINT NOT NULL,
+  `durationTier` TINYINT NOT NULL,
+  `location` TINYINT NOT NULL,
+  `departureTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `returnTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ship1` BIGINT NOT NULL,
+  `ship2` BIGINT NOT NULL,
+  `ship3` BIGINT NOT NULL,
+  `ship4` BIGINT NOT NULL,
+  `shipSpecial1` BIGINT NOT NULL,
+  INDEX(`userId` DESC)
+) ENGINE = InnoDB;
+
 CREATE TABLE `custom_commands` (
   `user_id` BIGINT NOT NULL,
   `command` VARCHAR(191) NOT NULL,

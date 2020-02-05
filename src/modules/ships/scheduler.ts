@@ -18,6 +18,7 @@ import { BuildableShip } from './fleet';
 export enum NotificationType {
   ProductionUpgrade,
   ShipBuild,
+  RaidReturn,
 }
 
 export interface NotificationRow {

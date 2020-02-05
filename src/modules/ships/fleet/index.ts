@@ -22,6 +22,7 @@ import { CONF } from 'src/conf';
 import { setReminder, NotificationType } from 'src/modules/ships/scheduler';
 
 export type BuildableShip = 'ship1' | 'ship2' | 'ship3' | 'shipSpecial1';
+export const AllBuildableShipTypes: BuildableShip[] = ['ship1', 'ship2', 'ship3', 'shipSpecial1'];
 
 export interface Fleet {
   ship1: number;
@@ -69,7 +70,7 @@ export const buildDefaultFleet = (): Fleet => ({
  */
 export const computeLiveFleet = (
   now: Date,
-  fleet: Fleet & { checkpointTime: Date },
+  fleet: Fleet & { checkpointTime: Date; userId: string },
   applicableFleetJobs: FleetJob[]
 ): Fleet => {
   const liveFleet = { ...fleet };

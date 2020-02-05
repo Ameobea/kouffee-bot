@@ -6,6 +6,7 @@ import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { roulette } from './modules/economy/gambling';
 import { maybeHandleCommand, init as initShips } from './modules/ships';
+import { initItemData } from './modules/ships/inventory/item';
 import {
   getCustomCommandResponse,
   addCustomCommand,
@@ -128,11 +129,19 @@ const init = async () => {
     user: CONF.database.username,
     password: CONF.database.password,
     database: CONF.database.database,
+    bigNumberStrings: true,
+    supportBigNumbers: true,
   });
 
   console.log('Initializing ships module...');
   await initShips(client, pool);
   console.log('Initialized ships module.');
+
+  await initItemData().catch(err => {
+    console.error('Error initializing item data: ', err);
+    process.exit(1);
+  });
+  console.log('Loading item data item database file');
 
   initMsgHandler(pool);
 

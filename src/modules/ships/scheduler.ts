@@ -14,6 +14,9 @@ import { CONF } from 'src/conf';
 import { TableNames } from './db';
 import { Production } from './economy';
 import { BuildableShip } from './fleet';
+import { getRaidTimeDurString, formatInventory } from './formatters';
+import { deserializeRaidResult } from './raids';
+import { RaidResult } from './raids/types';
 
 export enum NotificationType {
   ProductionUpgrade,
@@ -30,7 +33,9 @@ export interface NotificationRow {
   reminderTime: Date;
 }
 
-const buildNotificationContent = (notification: NotificationRow): Eris.MessageContent => {
+const buildNotificationContent = (
+  notification: NotificationRow
+): Eris.MessageContent | Eris.MessageContent[] => {
   switch (notification.notificationType) {
     case NotificationType.ProductionUpgrade: {
       const [productionType, level]: [
@@ -53,8 +58,16 @@ const buildNotificationContent = (notification: NotificationRow): Eris.MessageCo
       )} ${CONF.ships.ship_names[shipType]} is complete!`;
     }
     case NotificationType.RaidReturn: {
+      const { userId, rewardItems, durationTier, location }: RaidResult = deserializeRaidResult(
+        notification.notificationPayload
+      );
       // TODO: Include the raid's loot in the message.  We also must compute that ahead of time...
-      return 'Your raid has returned!  Your fleet is available for another raid.  TODO: Include raid loot and info about the raid';
+      return [
+        `<@${userId}>: Your ${getRaidTimeDurString(durationTier)} raid to ${
+          CONF.ships.raid_location_names[location].name
+        } has returned!`,
+        `Loot:\n\n${formatInventory(rewardItems)}`,
+      ];
     }
     default: {
       throw new Error(`Unhandled notification type: "${notification.notificationType}"`);
@@ -79,7 +92,12 @@ const sendNotification = (client: Eris.Client, notification: NotificationRow) =>
     return;
   }
 
-  client.createMessage(notification.channelId, buildNotificationContent(notification));
+  const content = buildNotificationContent(notification);
+  if (Array.isArray(content)) {
+    content.forEach(content => client.createMessage(notification.channelId, content));
+  } else {
+    client.createMessage(notification.channelId, content);
+  }
 };
 
 export const initTimers = async (client: Eris.Client, conn: mysql.Pool) => {

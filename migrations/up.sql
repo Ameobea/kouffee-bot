@@ -60,7 +60,7 @@ CREATE TABLE `ships_notifications` (
   `notificationType` VARCHAR(191) NOT NULL,
   `guildId` BIGINT NOT NULL,
   `channelId` BIGINT NOT NULL,
-  `notificationPayload` VARCHAR(191) NOT NULL,
+  `notificationPayload` TEXT NOT NULL,
   `reminderTime` TIMESTAMP NOT NULL
 ) ENGINE = InnoDB;
 ALTER TABLE `ships_notifications` ADD INDEX(`reminderTime` DESC);
@@ -74,6 +74,12 @@ CREATE TABLE `ships_inventory` (
 ) ENGINE = InnoDB;
 ALTER TABLE `ships_inventory` ADD INDEX(`userId` DESC);
 ALTER TABLE `ships_inventory` ADD INDEX(`metadataKey` ASC);
+
+CREATE TABLE `ships_inventory-checkpointTime` (
+  `userId` BIGINT NOT NULL,
+  `checkpointTime` TIMESTAMP NOT NULL,
+  PRIMARY KEY (`userId`)
+) ENGINE = InnoDB;
 
 CREATE TABLE `ships_inventory-metadata` (
   `id` BIGINT NOT NULL,
@@ -101,6 +107,27 @@ CREATE TABLE `ships_raids` (
 CREATE TABLE `ships_userLocks` (
   `userId` BIGINT NOT NULL,
   PRIMARY KEY (`userId`)
+) ENGINE = InnoDB;
+
+CREATE TABLE `ships_fleet-transactions` (
+  `userId` BIGINT NOT NULL,
+  `applicationTime` TIMESTAMP NOT NULL,
+  `ship1` BIGINT NOT NULL,
+  `ship2` BIGINT NOT NULL,
+  `ship3` BIGINT NOT NULL,
+  `ship4` BIGINT NOT NULL,
+  `shipSpecial1` BIGINT NOT NULL,
+  INDEX(`userId` DESC)
+) ENGINE = InnoDB;
+
+CREATE TABLE `ships_inventory-transactions` (
+  `userId` BIGINT NOT NULL,
+  `applicationTime` TIMESTAMP NOT NULL,
+  `itemId` INT NOT NULL,
+  `count` BIGINT NOT NULL,
+  `metadataKey` BIGINT NULL,
+  `tier` TINYINT NULL,
+  INDEX(`userId` DESC)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `custom_commands` (

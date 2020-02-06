@@ -25,8 +25,8 @@ export interface ItemDefinition {
 
 export interface Item {
   id: number;
-  count: number;
-  tier?: Tier;
+  count: bigint;
+  tier?: Tier | null;
   metadata?: any;
 }
 

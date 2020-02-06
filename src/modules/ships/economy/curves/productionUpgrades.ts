@@ -7,28 +7,28 @@ export const ProductionUpgradeCostGetters: {
 } = {
   tier1: (curTier: number) => ({
     cost: {
-      tier1: mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800,
-      tier2: mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400,
-      tier3: 0,
-      special1: 0,
+      tier1: BigInt(mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800),
+      tier2: BigInt(mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400),
+      tier3: 0n,
+      special1: 0n,
     },
     timeMs: mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) - 60 * 1000,
   }),
   tier2: (curTier: number) => ({
     cost: {
-      tier1: mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400,
-      tier2: mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800,
-      tier3: 0,
-      special1: 0,
+      tier1: BigInt(mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400),
+      tier2: BigInt(mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800),
+      tier3: 0n,
+      special1: 0n,
     },
     timeMs: mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) * 1.2 - 60 * 1000,
   }),
   tier3: (curTier: number) => ({
     cost: {
-      tier1: mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550,
-      tier2: mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550,
-      tier3: mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800,
-      special1: 0,
+      tier1: BigInt(mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550),
+      tier2: BigInt(mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550),
+      tier3: BigInt(mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800),
+      special1: 0n,
     },
     timeMs: mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) * 1.6 - 60 * 1000,
   }),
@@ -37,11 +37,20 @@ export const ProductionUpgradeCostGetters: {
 export const ShipProductionCostGetters: {
   [K in BuildableShip]: { cost: Balances; timeMs: number };
 } = {
-  ship1: { cost: { tier1: 2500, tier2: 1000, tier3: 0, special1: 0 }, timeMs: 60 * 2 * 1000 },
-  ship2: { cost: { tier1: 3000, tier2: 3000, tier3: 500, special1: 0 }, timeMs: 60 * 2 * 1000 },
-  ship3: { cost: { tier1: 500, tier2: 5000, tier3: 1000, special1: 100 }, timeMs: 60 * 2 * 1000 },
+  ship1: {
+    cost: { tier1: 2500n, tier2: 1000n, tier3: 0n, special1: 0n },
+    timeMs: 60 * 2 * 1000,
+  },
+  ship2: {
+    cost: { tier1: 3000n, tier2: 3000n, tier3: 500n, special1: 0n },
+    timeMs: 60 * 2 * 1000,
+  },
+  ship3: {
+    cost: { tier1: 500n, tier2: 5000n, tier3: 1000n, special1: 100n },
+    timeMs: 60 * 2 * 1000,
+  },
   shipSpecial1: {
-    cost: { tier1: 500000, tier2: 250000, tier3: 250000, special1: 500 },
+    cost: { tier1: 500000n, tier2: 250000n, tier3: 250000n, special1: 500n },
     timeMs: 60 * 60 * 12 * 1000,
   },
 };

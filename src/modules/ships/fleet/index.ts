@@ -29,11 +29,11 @@ export type BuildableShip = 'ship1' | 'ship2' | 'ship3' | 'shipSpecial1';
 export const AllBuildableShipTypes: BuildableShip[] = ['ship1', 'ship2', 'ship3', 'shipSpecial1'];
 
 export interface Fleet {
-  ship1: number;
-  ship2: number;
-  ship3: number;
-  ship4: number;
-  shipSpecial1: number;
+  ship1: bigint;
+  ship2: bigint;
+  ship3: bigint;
+  ship4: bigint;
+  shipSpecial1: bigint;
 }
 
 export enum FleetJobType {
@@ -48,7 +48,7 @@ interface FleetJobBase {
 export type FleetJob = {
   jobType: FleetJobType.BuildShip;
   shipType: BuildableShip;
-  shipCount: number;
+  shipCount: bigint;
 } & FleetJobBase;
 
 export interface FleetJobRow {
@@ -57,15 +57,20 @@ export interface FleetJobRow {
   startTime: Date;
   endTime: Date;
   shipType: BuildableShip;
-  shipCount: number;
+  shipCount: bigint;
+}
+
+export interface FleetTransactionRow extends Fleet {
+  userId: string;
+  applicationTime: Date;
 }
 
 export const buildDefaultFleet = (): Fleet => ({
-  ship1: 0,
-  ship2: 0,
-  ship3: 0,
-  ship4: 0,
-  shipSpecial1: 0,
+  ship1: 0n,
+  ship2: 0n,
+  ship3: 0n,
+  ship4: 0n,
+  shipSpecial1: 0n,
 });
 
 /**
@@ -75,7 +80,8 @@ export const buildDefaultFleet = (): Fleet => ({
 export const computeLiveFleet = (
   now: Date,
   fleet: Fleet & { checkpointTime: Date; userId: string },
-  applicableFleetJobs: FleetJob[]
+  applicableFleetJobs: FleetJob[],
+  applicableFleetTransactions: FleetTransactionRow[]
 ): Fleet => {
   const liveFleet = { ...fleet };
 
@@ -96,11 +102,27 @@ export const computeLiveFleet = (
   partiallyFinishedFleetJobs.forEach(job => {
     const timePerShipMs = ShipProductionCostGetters[job.shipType].timeMs;
     const taskTimeProgressedMs = nowTime - job.startTime.getTime();
-    const shipsFinished = Math.trunc(taskTimeProgressedMs / timePerShipMs);
+    const shipsFinished = BigInt(Math.trunc(taskTimeProgressedMs / timePerShipMs));
     liveFleet[job.shipType] += shipsFinished;
   });
 
-  return liveFleet;
+  // Finally, we apply all fleet transactions that have occurred
+  const fleetEntries: [keyof Fleet, bigint][] = applicableFleetTransactions
+    .reduce(
+      (fleetEntries, transaction) =>
+        fleetEntries.map(([key, val]) => [key, val + transaction[key]]),
+      Object.entries(liveFleet) as [keyof Fleet, bigint][]
+    )
+    .map(([key, val]: [keyof Fleet, bigint]): [keyof Fleet, bigint] => {
+      if (val < 0n) {
+        console.error(
+          `Fleet transaction for userId "${fleet.userId}" caused negative fleet balance for shipe type "${key}"`
+        );
+        return [key, 0n];
+      }
+      return [key, val];
+    });
+  return (Object.fromEntries(fleetEntries) as any) as Fleet;
 };
 
 export const queueFleetProduction = async (
@@ -130,7 +152,7 @@ export const queueFleetProduction = async (
   );
 
   const { cost: costPerShip, timeMs: timeMsPerShip } = ShipProductionCostGetters[shipType];
-  const upgradeCost = multiplyBalances(costPerShip, count);
+  const upgradeCost = multiplyBalances(costPerShip, BigInt(count));
 
   const insufficientResourceNames = getHasSufficientBalance(upgradeCost, liveBalances);
   if (insufficientResourceNames) {
@@ -146,13 +168,13 @@ export const queueFleetProduction = async (
       now
     );
     const completionTime = dayjs(startTime)
-      .add(timeMsPerShip * count, 'millisecond')
+      .add(Number(timeMsPerShip * count), 'millisecond')
       .toDate();
     await queueFleetJob({
       conn,
       shipType,
       userId,
-      shipCount: count,
+      shipCount: BigInt(count),
       startTime,
       endTime: completionTime,
     });

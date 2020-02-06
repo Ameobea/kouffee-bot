@@ -16,6 +16,9 @@ import {
   RaidDurationTier,
   insertRaid,
   connAndTransact,
+  getApplicableFleetTransactions,
+  insertInventoryTransactions,
+  insertFleetTransactions,
 } from './db';
 import {
   Fleet,
@@ -24,6 +27,7 @@ import {
   AllBuildableShipTypes,
   BuildableShip,
   getUserFleetState,
+  FleetTransactionRow,
 } from './fleet';
 import {
   computeLiveUserProductionAndBalances,
@@ -36,9 +40,11 @@ import { ProductionIncomeGetters } from './economy/curves/production';
 import { setReminder, NotificationType } from './scheduler';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
 import { formatInventory, getRaidTimeDurString } from './formatters';
-import { getAvailableRaidLocations, RaidLocation } from './raids';
+import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids';
+import { RaidLocation, RaidResult } from './raids/types';
+import { InventoryTransactionRow } from './inventory';
 
-const fmtCount = (count: number): string =>
+const fmtCount = (count: number | bigint): string =>
   numeral(count).format(count > 10000 ? '1,000.0a' : '1,000');
 
 const formatFleet = (fleet: Fleet): string => `
@@ -142,17 +148,31 @@ interface CommandHandlerArgs {
 
 const printCurFleet = async ({ pool, userId }: CommandHandlerArgs) => {
   const conn = await getConn(pool);
+  const conn2 = await getConn(pool);
+
   try {
     const {
       fleet,
       fleetJobsEndingAfterCheckpointTime: fleetJobsEndingAfterLastCommit,
     } = await getUserFleetState(conn, userId);
-    const liveFleet = computeLiveFleet(await dbNow(conn), fleet, fleetJobsEndingAfterLastCommit);
+    const applicableFleetTransactions = await getApplicableFleetTransactions(
+      conn2,
+      fleet.checkpointTime,
+      userId
+    );
+
+    const liveFleet = computeLiveFleet(
+      await dbNow(conn),
+      fleet,
+      fleetJobsEndingAfterLastCommit,
+      applicableFleetTransactions
+    );
     return formatFleet(liveFleet);
   } catch (err) {
     throw err;
   } finally {
     conn.release();
+    conn2.release();
   }
 };
 
@@ -426,7 +446,7 @@ const formatRaidLocations = (names: RaidLocation[]): string =>
     .map(R.prop('name'))
     .join(', ');
 
-const getRaidDurationMs = (durationTier: RaidDurationTier): number =>
+export const getRaidDurationMS = (durationTier: RaidDurationTier): number =>
   ({
     // [RaidDurationTier.Short]: 45 * 60 * 1000,
     // [RaidDurationTier.Medium]: 2 * 60 * 60 * 1000,
@@ -491,12 +511,22 @@ const raid = async ({
       now,
       { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime },
     ] = await Promise.all([dbNow(conn), getUserFleetState(conn, userId)] as const);
-    const liveFleet = computeLiveFleet(now, checkpointFleet, fleetJobsEndingAfterCheckpointTime);
+    const applicableFleetTransactions = await getApplicableFleetTransactions(
+      conn,
+      checkpointFleet.checkpointTime,
+      userId
+    );
+    const liveFleet = computeLiveFleet(
+      now,
+      checkpointFleet,
+      fleetJobsEndingAfterCheckpointTime,
+      applicableFleetTransactions
+    );
 
     // Compute departure + return time and send off the fleet
     const departureTime = now;
     const returnTime = dayjs(departureTime)
-      .add(getRaidDurationMs(durationTier), 'ms')
+      .add(getRaidDurationMS(durationTier), 'ms')
       .toDate();
 
     await insertRaid(conn, {
@@ -508,6 +538,41 @@ const raid = async ({
       ...liveFleet,
     });
 
+    // Pre-compute what our rewards and fleet outcome will be
+    const { rewardItems, fleetDiff } = await doRaid(userId, location, durationTier, liveFleet);
+    const raidResult: RaidResult = {
+      userId,
+      completionTime: returnTime,
+      rewardItems,
+      fleetDiff,
+      fleet: liveFleet,
+      durationTier,
+      location,
+    };
+    const serializedRaidResult = serializeRaidResult(raidResult);
+
+    // Add inventory transactions for all of the raid results
+    const invTransactions: InventoryTransactionRow[] = rewardItems.map(item => ({
+      userId,
+      applicationTime: returnTime,
+      itemId: item.id,
+      count: item.count,
+      metadataKey: null, // TODO
+      tier: item.tier,
+    }));
+    await insertInventoryTransactions(conn, invTransactions);
+
+    if (fleetDiff) {
+      const fleetTransaction: FleetTransactionRow = {
+        ...fleetDiff,
+        userId,
+        applicationTime: returnTime,
+      };
+      await insertFleetTransactions(conn, [fleetTransaction]);
+    }
+
+    // Add fleet transaction for the raid's combat result
+
     // Register a reminder for when the fleet returns
     if (msg.channel.type === 0) {
       setReminder(
@@ -518,7 +583,7 @@ const raid = async ({
           notificationType: NotificationType.RaidReturn,
           guildId: msg.channel.guild.id,
           channelId: msg.channel.id,
-          notificationPayload: '',
+          notificationPayload: serializedRaidResult,
           reminderTime: returnTime,
         },
         now

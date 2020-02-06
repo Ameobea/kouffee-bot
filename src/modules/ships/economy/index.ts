@@ -4,10 +4,10 @@ import { filterNils } from 'ameo-utils/dist/util';
 import { ProductionIncomeGetters } from './curves/production';
 
 export interface Balances {
-  tier1: number;
-  tier2: number;
-  tier3: number;
-  special1: number;
+  tier1: bigint;
+  tier2: bigint;
+  tier3: bigint;
+  special1: bigint;
 }
 
 export const addBalances = (bal1: Balances, bal2: Balances): Balances => ({
@@ -24,7 +24,7 @@ export const subtractBalances = (bal1: Balances, bal2: Balances): Balances => ({
   special1: bal1.special1 - bal2.special1,
 });
 
-export const multiplyBalances = (bal1: Balances, multiplier: number): Balances => ({
+export const multiplyBalances = (bal1: Balances, multiplier: bigint): Balances => ({
   tier1: bal1.tier1 * multiplier,
   tier2: bal1.tier2 * multiplier,
   tier3: bal1.tier3 * multiplier,
@@ -46,13 +46,18 @@ export const getHasSufficientBalance = (
   return R.isEmpty(missingNames) ? null : missingNames;
 };
 
-export const buildEmptyBalances = (): Balances => ({ tier1: 0, tier2: 0, tier3: 0, special1: 0 });
+export const buildEmptyBalances = (): Balances => ({
+  tier1: 0n,
+  tier2: 0n,
+  tier3: 0n,
+  special1: 0n,
+});
 
 export const buildDefaultBalances = (): Balances => ({
-  tier1: 2000,
-  tier2: 1000,
-  tier3: 200,
-  special1: 0,
+  tier1: 2000n,
+  tier2: 1000n,
+  tier3: 200n,
+  special1: 0n,
 });
 
 export interface Production {

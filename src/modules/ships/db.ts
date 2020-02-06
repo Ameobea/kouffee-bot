@@ -2,9 +2,9 @@ import * as R from 'ramda';
 import mysql from 'mysql';
 import { Either, Option } from 'funfix-core';
 
-import { query, update, commit, dbNow, insert, getConn, rollback } from 'src/dbUtil';
+import { query, update, commit, dbNow, insert, getConn, rollback, _delete } from 'src/dbUtil';
 import { formatInsufficientResourceTypes } from 'src/modules/ships/formatters';
-import { Fleet, BuildableShip, FleetJobRow, FleetJobType } from './fleet';
+import { Fleet, BuildableShip, FleetJobRow, FleetJobType, FleetTransactionRow } from './fleet';
 import {
   Production,
   buildDefaultProduction,
@@ -18,7 +18,8 @@ import {
 } from './economy';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
 import { Item } from './inventory/item';
-import { RaidLocation } from './raids';
+import { RaidLocation } from './raids/types';
+import { InventoryTransactionRow } from './inventory';
 
 export const TableNames = {
   Fleet: 'ships_fleets',
@@ -33,9 +34,12 @@ export const TableNames = {
   ProductionJobs: 'ships_production-jobs',
   Notifications: 'ships_notifications',
   Inventory: 'ships_inventory',
+  InventoryCheckpointTime: 'ships_inventory-checkpointTime',
   InventoryMetadata: 'ships_inventory-metadata',
   Raids: 'ships_raids',
   UserLocks: 'ships_userLocks',
+  InventoryTransactions: 'ships_inventory-transactions',
+  FleetTransactions: 'ships_fleet-transactions',
 } as const;
 
 /**
@@ -141,7 +145,7 @@ export interface QueueFleetJobParams {
   conn: mysql.Pool | mysql.PoolConnection;
   userId: string;
   shipType: BuildableShip;
-  shipCount: number;
+  shipCount: bigint;
   startTime: Date;
   endTime: Date;
 }
@@ -358,16 +362,69 @@ export const queueProductionJob = async (
     throw err;
   });
 
+export const getInventoryCheckpointTime = (
+  conn: mysql.Pool | mysql.PoolConnection,
+  userId: string
+): Promise<Date | null> =>
+  query<{ userId: string; checkpointTime: Date }>(
+    conn,
+    `SELECT * FROM \`${TableNames.InventoryCheckpointTime}\` WHERE userId = ?;`,
+    [userId]
+  ).then(([row]: { userId: string; checkpointTime: Date }[]) =>
+    Option.of(row)
+      .map(R.prop('checkpointTime'))
+      .orNull()
+  );
+
+export const insertInventoryTransactions = (
+  conn: mysql.Pool | mysql.PoolConnection,
+  invTransactions: InventoryTransactionRow[]
+) =>
+  insert(
+    conn,
+    `INSERT INTO \`${TableNames.InventoryTransactions}\` (userId, applicationTime, itemId, count, metadataKey, tier) VALUES ?`,
+    [
+      invTransactions.map(({ userId, applicationTime, itemId, count, metadataKey, tier }) => [
+        userId,
+        applicationTime,
+        itemId,
+        count,
+        metadataKey,
+        tier,
+      ]),
+    ]
+  );
+
+export const insertFleetTransactions = (
+  conn: mysql.Pool | mysql.PoolConnection,
+  fleetTransactions: FleetTransactionRow[]
+) =>
+  insert(
+    conn,
+    `INSERT INTO \`${TableNames.FleetTransactions}\` (userId, applicationTime, ship1, ship2, ship3, ship4, shipSpecial1) VALUES ?;`,
+    [
+      fleetTransactions.map(
+        ({ userId, applicationTime, ship1, ship2, ship3, ship4, shipSpecial1 }) => [
+          userId,
+          applicationTime,
+          ship1,
+          ship2,
+          ship3,
+          ship4,
+          shipSpecial1,
+        ]
+      ),
+    ]
+  );
+
 export const getInventoryForPlayer = async (
   conn: mysql.Pool | mysql.PoolConnection,
   userId: string
-): Promise<Item[]> =>
-  query(
+): Promise<Item[]> => {
+  const inventoryCheckpointTime = await getInventoryCheckpointTime(conn, userId);
+  const items = await query(
     conn,
-    // This should hopefully lock the full inventory and inventory metadata for a given player for both reading and writing.
-    //
-    // Only one connection should have access to user inventory state at a time.
-    `SELECT \`${TableNames.Inventory}\`.itemId, \`${TableNames.Inventory}\`.count, \`${TableNames.Inventory}\`.tier, \`${TableNames.InventoryMetadata}\`.data
+    `SELECT \`${TableNames.Inventory}\`.itemId, \`${TableNames.Inventory}\`.count, \`${TableNames.Inventory}\`.tier, \`${TableNames.InventoryMetadata}\`.data, \`${TableNames.Inventory}\`.metadataKey
     FROM \`${TableNames.Inventory}\`
     LEFT JOIN \`${TableNames.InventoryMetadata}\` ON \`${TableNames.Inventory}\`.metadataKey = \`${TableNames.InventoryMetadata}\`.id
     WHERE userId = ?;`,
@@ -379,14 +436,81 @@ export const getInventoryForPlayer = async (
         count,
         tier,
         data,
+        metadataKey,
       }: {
         itemId: number;
-        count: number;
+        count: string;
         tier: number | null;
         data: string | null;
-      }): Item => ({ id: itemId, count, tier: R.isNil(tier) ? undefined : tier, metadata: data })
+        metadataKey: string | null;
+      }): Item & { metadataKey: string | null } => ({
+        id: itemId,
+        count: BigInt(count),
+        tier: R.isNil(tier) ? undefined : tier,
+        metadata: data,
+        metadataKey,
+      })
     )
   );
+
+  const inventoryTransactionsToApply: (InventoryTransactionRow & {
+    metadata: any | null;
+  })[] = await query<InventoryTransactionRow & { data: string | null }>(
+    conn,
+    `SELECT *
+    FROM \`${TableNames.InventoryTransactions}\`
+    LEFT JOIN \`${TableNames.InventoryMetadata}\` ON \`${TableNames.InventoryTransactions}\`.metadataKey = \`${TableNames.InventoryMetadata}\`.id
+    WHERE userId = ? AND applicationTime > ? AND applicationTime <= NOW();`,
+    [userId, inventoryCheckpointTime || 0]
+  ).then(rows =>
+    rows.map(({ data, count, ...rest }) => ({
+      ...rest,
+      metadata: data ? JSON.parse(data) : null,
+      count: BigInt(count),
+    }))
+  );
+
+  return inventoryTransactionsToApply.reduce((acc, transaction): Item[] => {
+    const matchingItemIx = items.findIndex(
+      item =>
+        item.id === transaction.itemId &&
+        item.tier === transaction.tier &&
+        item.metadata === transaction.metadataKey
+    );
+    if (matchingItemIx !== -1) {
+      const matchingItem = items[matchingItemIx]!;
+      matchingItem.count = matchingItem.count + BigInt(transaction.count);
+      if (matchingItem.count < 0) {
+        console.error(
+          `Transaction caused item count to go negative for userId "${userId}".  Transaction: `,
+          transaction
+        );
+        matchingItem.count = 0n;
+      }
+      if (matchingItem.count === 0n) {
+        // All items removed from the inventory
+        return R.remove(matchingItemIx, 1, acc);
+      }
+      return acc;
+    } else {
+      if (transaction.count < 0) {
+        console.error(
+          `Transaction with negative count targeting item id "${transaction.itemId}" which isn't in inventory for userId "${userId}": `,
+          transaction
+        );
+        return acc;
+      }
+
+      const newItem: Item = {
+        id: transaction.itemId,
+        count: transaction.count,
+        metadata: transaction.metadata,
+        tier: transaction.tier,
+      };
+      return [...acc, newItem];
+    }
+  }, items);
+};
 
 export enum RaidDurationTier {
   Short,
@@ -445,3 +569,39 @@ export const getActiveRaid = async (
     `SELECT * FROM \`${TableNames.Raids}\` WHERE userId = ? AND returnTime > NOW();`,
     [userId]
   ).then(([row]) => Option.of(row));
+
+export const getApplicableFleetTransactions = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  fleetCheckpointTime: Date | null,
+  userId: string
+): Promise<FleetTransactionRow[]> =>
+  query<FleetTransactionRow>(
+    conn,
+    `SELECT * FROM \`${TableNames.FleetTransactions}\` WHERE userId = ? AND applicationTime > ? AND applicationTime <= NOW();`,
+    [userId, fleetCheckpointTime || 0]
+  );
+
+const setInventoryCheckpointForPlayer = (conn: mysql.Pool | mysql.PoolConnection, userId: string) =>
+  insert(
+    conn,
+    `INSERT INTO \`${TableNames.InventoryCheckpointTime}\` (userId, checkpointTime) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE checkpointTime=NOW();`,
+    [userId]
+  );
+
+export const setInventoryForPlayer = (
+  conn: mysql.PoolConnection,
+  inventory: Item[],
+  userId: string
+) =>
+  transact(conn, userId, async conn => {
+    await setInventoryCheckpointForPlayer(conn, userId);
+    await _delete(conn, `DELETE FROM \`${TableNames.InventoryCheckpointTime}\` WHERE userId = ?;`, [
+      userId,
+    ]);
+    // TODO: Deal with the metadata if we ever actually use that.
+    await insert(
+      conn,
+      `INSERT INTO \`${TableNames.Inventory}\` (userId, itemId, count, metadataKey, tier) VALUES ?;`,
+      [inventory.map(item => [userId, item.id, item.count, null, item.tier])]
+    );
+  });

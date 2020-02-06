@@ -98,6 +98,11 @@ CREATE TABLE `ships_raids` (
   INDEX(`userId` DESC)
 ) ENGINE = InnoDB;
 
+CREATE TABLE `ships_userLocks` (
+  `userId` BIGINT NOT NULL,
+  PRIMARY KEY (`userId`)
+) ENGINE = InnoDB;
+
 CREATE TABLE `custom_commands` (
   `user_id` BIGINT NOT NULL,
   `command` VARCHAR(191) NOT NULL,

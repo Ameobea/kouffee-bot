@@ -2,6 +2,7 @@ import Eris, { EmbedOptions } from 'eris';
 import mysql from 'mysql';
 
 import { loadConf, CONF } from './conf';
+import { createConnPool } from './dbUtil';
 import { claimDaily, getBalance, getTopBalances } from './modules/economy';
 import { getRandomAmeoLink } from './modules/random-ameolink';
 import { roulette } from './modules/economy/gambling';
@@ -123,15 +124,7 @@ const init = async () => {
   await loadConf();
   console.log('Loaded config');
 
-  const pool = mysql.createPool({
-    connectionLimit: 10,
-    host: CONF.database.host,
-    user: CONF.database.username,
-    password: CONF.database.password,
-    database: CONF.database.database,
-    bigNumberStrings: true,
-    supportBigNumbers: true,
-  });
+  const pool = createConnPool(CONF);
 
   console.log('Initializing ships module...');
   await initShips(client, pool);

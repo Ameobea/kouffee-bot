@@ -19,7 +19,7 @@
     "suppressImplicitAnyIndexErrors": false,
     "noUnusedLocals": true,
     "typeRoots": ["./node_modules/@types"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
       "*": ["./node_modules/@types/*", "*"]

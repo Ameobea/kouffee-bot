@@ -1,3 +1,4 @@
+import * as R from 'ramda';
 import mysql from 'mysql';
 import numeral from 'numeral';
 import dayjs from 'dayjs';
@@ -9,8 +10,11 @@ import {
   setProductionAndBalances,
   queueFleetJob,
   getAllPendingOrRunningFleetJobs,
+  transact,
+  TableNames,
+  setFleet,
 } from 'src/modules/ships/db';
-import { dbNow } from 'src/dbUtil';
+import { dbNow, query } from 'src/dbUtil';
 import {
   computeLiveUserProductionAndBalances,
   multiplyBalances,
@@ -134,39 +138,26 @@ export const queueFleetProduction = async (
   }
 
   const newBalances = subtractBalances(liveBalances, upgradeCost);
-  const completionTime = await new Promise<Date>((resolve, reject) => {
-    conn.beginTransaction(async err => {
-      if (err) {
-        reject(err);
-        return;
-      }
+  const completionTime = await transact(conn, userId, async conn => {
+    await setProductionAndBalances(conn, userId, liveProduction, newBalances);
 
-      try {
-        await setProductionAndBalances(conn, userId, liveProduction, newBalances);
-
-        const startTime = (await getAllPendingOrRunningFleetJobs(conn, userId, now)).reduce(
-          (acc, job) => (job.endTime.getTime() > acc.getTime() ? job.endTime : acc),
-          now
-        );
-        const completionTime = dayjs(startTime)
-          .add(timeMsPerShip * count, 'millisecond')
-          .toDate();
-        await queueFleetJob({
-          conn,
-          shipType,
-          userId,
-          shipCount: count,
-          startTime,
-          endTime: completionTime,
-        });
-
-        conn.commit();
-        resolve(completionTime);
-      } catch (err) {
-        conn.rollback();
-        reject(err);
-      }
+    const startTime = (await getAllPendingOrRunningFleetJobs(conn, userId, now)).reduce(
+      (acc, job) => (job.endTime.getTime() > acc.getTime() ? job.endTime : acc),
+      now
+    );
+    const completionTime = dayjs(startTime)
+      .add(timeMsPerShip * count, 'millisecond')
+      .toDate();
+    await queueFleetJob({
+      conn,
+      shipType,
+      userId,
+      shipCount: count,
+      startTime,
+      endTime: completionTime,
     });
+
+    return completionTime;
   });
 
   if (msg.channel.type === 0) {
@@ -193,3 +184,34 @@ export const queueFleetProduction = async (
     CONF.ships.ship_names[shipType]
   } for production!  Time to completion: ${dayjs(now).to(completionTime)}`;
 };
+
+/**
+ * Returns the current fleet for a given user.  If the user doesn't have any DB state for their fleet, it will be initialized
+ * with an empty fleet.
+ */
+export const getUserFleetState = (
+  conn: mysql.PoolConnection,
+  userId: string
+): Promise<{
+  fleet: Fleet & { checkpointTime: Date; userId: string };
+  fleetJobsEndingAfterCheckpointTime: FleetJob[];
+}> =>
+  transact(conn, userId, async conn => {
+    let [fleetRes] = await query<Fleet & { userId: string; checkpointTime: Date }>(
+      conn,
+      `SELECT * FROM \`${TableNames.Fleet}\` WHERE userId = ?;`,
+      [userId]
+    );
+    if (R.isNil(fleetRes)) {
+      fleetRes = { ...buildDefaultFleet(), userId, checkpointTime: await dbNow(conn) };
+      await setFleet(conn, userId, fleetRes);
+    }
+
+    const fleetJobs = await query<FleetJob>(
+      conn,
+      `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime >= ?;`,
+      [userId, fleetRes.checkpointTime]
+    );
+
+    return { fleet: fleetRes, fleetJobsEndingAfterCheckpointTime: fleetJobs };
+  });

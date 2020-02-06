@@ -9,5 +9,6 @@ DROP TABLE ships_notifications;
 DROP TABLE ships_inventory;
 DROP TABLE ships_inventory-metadata;
 DROP TABLE ships_raids;
+DROP TABLE ships_userLocks;
 
 DROP TABLE custom_commands;

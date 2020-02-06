@@ -1,6 +1,19 @@
 import mysql from 'mysql';
 import dayjs from 'dayjs';
 
+import { Conf } from './conf';
+
+export const createConnPool = (conf: Conf) =>
+  mysql.createPool({
+    connectionLimit: 10,
+    host: conf.database.host,
+    user: conf.database.username,
+    password: conf.database.password,
+    database: conf.database.database,
+    bigNumberStrings: true,
+    supportBigNumbers: true,
+  });
+
 export const query = async <T>(
   conn: mysql.Pool | mysql.PoolConnection,
   query: string,

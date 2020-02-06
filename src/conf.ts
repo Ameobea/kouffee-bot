@@ -46,6 +46,7 @@ export const loadConf = async () => {
 
   try {
     CONF = toml.parse(fileContent) as Conf;
+    return CONF;
   } catch (err) {
     console.error('Failed to parse conf file: ', err);
     process.exit(1);

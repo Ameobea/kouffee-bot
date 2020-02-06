@@ -2,16 +2,9 @@ import * as R from 'ramda';
 import mysql from 'mysql';
 import { Either, Option } from 'funfix-core';
 
-import { query, update, commit, dbNow, insert, getConn } from 'src/dbUtil';
+import { query, update, commit, dbNow, insert, getConn, rollback } from 'src/dbUtil';
 import { formatInsufficientResourceTypes } from 'src/modules/ships/formatters';
-import {
-  Fleet,
-  buildDefaultFleet,
-  BuildableShip,
-  FleetJob,
-  FleetJobRow,
-  FleetJobType,
-} from './fleet';
+import { Fleet, BuildableShip, FleetJobRow, FleetJobType } from './fleet';
 import {
   Production,
   buildDefaultProduction,
@@ -42,9 +35,62 @@ export const TableNames = {
   Inventory: 'ships_inventory',
   InventoryMetadata: 'ships_inventory-metadata',
   Raids: 'ships_raids',
+  UserLocks: 'ships_userLocks',
 } as const;
 
-const setFleet = (
+/**
+ * Obtains a lock on the row for a user from the lock synchronization table.  The idea is that it will produce an
+ * exclusive lock which prevents any other updates to any of the user's data until after it's released.
+ */
+export const lockUser = (conn: mysql.PoolConnection, userId: string) =>
+  update(
+    conn,
+    `INSERT INTO \`${TableNames.UserLocks}\` (userId) VALUES (?) ON DUPLICATE KEY UPDATE userId=?`,
+    [userId, userId]
+  );
+
+export const transact = <T>(
+  conn: mysql.PoolConnection,
+  userId: string,
+  cb: (conn: mysql.PoolConnection) => Promise<T>
+): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    conn.beginTransaction(async err => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      try {
+        // Lock the user's row to ensure exclusive access to *everything* for the duration of this transaction
+        await lockUser(conn, userId);
+        const res = await cb(conn);
+        await commit(conn);
+        resolve(res);
+      } catch (err) {
+        reject(err);
+        await rollback(conn);
+      }
+    });
+  });
+
+export const connAndTransact = async <T>(
+  pool: mysql.Pool,
+  userId: string,
+  cb: (conn: mysql.PoolConnection) => Promise<T>
+): Promise<T> => {
+  const conn = await getConn(pool);
+
+  try {
+    return await transact(conn, userId, cb);
+  } catch (err) {
+    throw err;
+  } finally {
+    conn.release();
+  }
+};
+
+export const setFleet = (
   conn: mysql.PoolConnection,
   userId: string,
   { ship1, ship2, ship3, ship4, shipSpecial1 }: Fleet
@@ -91,45 +137,6 @@ export const setProductionAndBalances = (
     ]
   );
 
-/**
- * Returns the current fleet for a given user.  If the user doesn't have any DB state for their fleet, it will be initialized
- * with an empty fleet.
- */
-export const getUserFleetState = async (
-  conn: mysql.PoolConnection,
-  userId: string
-): Promise<{
-  fleet: Fleet & { checkpointTime: Date; userId: string };
-  fleetJobsEndingAfterCheckpointTime: FleetJob[];
-}> =>
-  new Promise((resolve, reject) => {
-    conn.beginTransaction(async err => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      let [fleetRes] = await query<Fleet & { userId: string; checkpointTime: Date }>(
-        conn,
-        `SELECT * FROM \`${TableNames.Fleet}\` WHERE userId = ? FOR UPDATE;`,
-        [userId]
-      );
-      if (R.isNil(fleetRes)) {
-        fleetRes = { ...buildDefaultFleet(), userId, checkpointTime: await dbNow(conn) };
-        await setFleet(conn, userId, fleetRes);
-      }
-
-      const fleetJobs = await query<FleetJob>(
-        conn,
-        `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime >= ? FOR UPDATE;`,
-        [userId, fleetRes.checkpointTime]
-      );
-
-      await commit(conn);
-      resolve({ fleet: fleetRes, fleetJobsEndingAfterCheckpointTime: fleetJobs });
-    });
-  });
-
 export interface QueueFleetJobParams {
   conn: mysql.Pool | mysql.PoolConnection;
   userId: string;
@@ -149,7 +156,7 @@ export const getAllPendingOrRunningFleetJobs = async (
 ): Promise<FleetJobRow[]> =>
   query<FleetJobRow>(
     conn,
-    `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime > ? FOR UPDATE;`,
+    `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime > ?;`,
     [userId, endTime]
   );
 
@@ -182,11 +189,7 @@ const getLastQueuedProductionJob = (
 ): Promise<ProductionJob | undefined> =>
   query<ProductionJob>(
     conn,
-    // `FOR UPDATE` is used here to ensure exclusive access to production jobs for a given user to a single connection.
-    // Since we depend on the full set of rows in that table for the user as input and any insertions invalidate our
-    // business logic, we need to make sure nobody else looks at the same state as us simultaneously and inserts
-    // the same rows as us based off of it.
-    `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? ORDER BY endTime DESC LIMIT 1 FOR UPDATE;`,
+    `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? ORDER BY endTime DESC LIMIT 1;`,
     [userId]
   ).then(R.head);
 
@@ -201,6 +204,13 @@ const insertProductionJob = (
     [userId, jobType, startTime, endTime, productionType]
   );
 
+export interface UserProductionAndBalancesState {
+  checkpointTime: Date;
+  balances: Balances;
+  production: Production;
+  productionJobsEndingAfterCheckpointTime: ProductionJob[];
+}
+
 /**
  * Returns the current production state for the given user.  If no DB entries exist for it, initial state
  * will be inserted.
@@ -209,182 +219,144 @@ export const getUserProductionAndBalancesState = async (
   conn: mysql.PoolConnection,
   userId: string
 ) =>
-  new Promise<{
-    checkpointTime: Date;
-    balances: Balances;
-    production: Production;
-    productionJobsEndingAfterCheckpointTime: ProductionJob[];
-  }>((resolve, reject) => {
-    conn.beginTransaction(async err => {
-      if (err) {
-        reject(err);
-        return;
-      }
+  transact<UserProductionAndBalancesState>(conn, userId, async conn => {
+    let [productionRes] = await query<{
+      tier1Prod: number;
+      tier2Prod: number;
+      tier3Prod: number;
+      tier1Bal: number;
+      tier2Bal: number;
+      tier3Bal: number;
+      special1Bal: number;
+      userId: string;
+      checkpointTime: Date;
+    }>(conn, `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ?;`, [userId]);
+    if (R.isNil(productionRes)) {
+      const production = buildDefaultProduction();
+      const balances = buildDefaultBalances();
+      productionRes = {
+        ...Object.fromEntries(Object.entries(production).map(([key, val]) => [key + 'Prod', val])),
+        ...Object.fromEntries(Object.entries(balances).map(([key, val]) => [key + 'Bal', val])),
+        checkpointTime: await dbNow(conn),
+        userId,
+      } as any;
+      await setProductionAndBalances(conn, userId, production, balances);
+    }
 
-      let [productionRes] = await query<{
-        tier1Prod: number;
-        tier2Prod: number;
-        tier3Prod: number;
-        tier1Bal: number;
-        tier2Bal: number;
-        tier3Bal: number;
-        special1Bal: number;
-        userId: string;
-        checkpointTime: Date;
-      }>(
-        conn,
-        // `FOR UPDATE` read-and-write locks all production rows for the user.  This prevents any other connections
-        // from looking at the current production for a user and making invalid assumptions.
-        `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ? FOR UPDATE;`,
-        [userId]
-      );
-      if (R.isNil(productionRes)) {
-        const production = buildDefaultProduction();
-        const balances = buildDefaultBalances();
-        productionRes = {
-          ...Object.fromEntries(
-            Object.entries(production).map(([key, val]) => [key + 'Prod', val])
-          ),
-          ...Object.fromEntries(Object.entries(balances).map(([key, val]) => [key + 'Bal', val])),
-          checkpointTime: await dbNow(conn),
-          userId,
-        } as any;
-        await setProductionAndBalances(conn, userId, production, balances);
-      }
+    const productionJobs = await query<{
+      userId: string;
+      jobType: ProductionJobType;
+      startTime: Date;
+      endTime: Date;
+      productionType: keyof Production;
+    }>(conn, `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? AND endTime > ?;`, [
+      userId,
+      productionRes.checkpointTime,
+    ]);
 
-      const productionJobs = await query<{
-        userId: string;
-        jobType: ProductionJobType;
-        startTime: Date;
-        endTime: Date;
-        productionType: keyof Production;
-      }>(
-        conn,
-        // `FOR UPDATE` locks the production jobs for the current user for reading and writing.  We need to deal with
-        // all production jobs for the user atomically since all production rows are input for logic involving
-        // queueing production jobs, editing production stats, etc.
-        `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? AND endTime > ? FOR UPDATE;`,
-        [userId, productionRes.checkpointTime]
-      );
-
-      await commit(conn);
-      resolve({
-        checkpointTime: productionRes.checkpointTime,
-        production: Object.fromEntries(
-          Object.entries(productionRes)
-            .filter(([key]) => key.includes('Prod'))
-            .map(([key, val]) => [key.replace('Prod', ''), val])
-        ) as any,
-        balances: Object.fromEntries(
-          Object.entries(productionRes)
-            .filter(([key]) => key.includes('Bal'))
-            .map(([key, val]) => [key.replace('Bal', ''), val])
-        ) as any,
-        productionJobsEndingAfterCheckpointTime: productionJobs,
-      });
-    });
+    await commit(conn);
+    return {
+      checkpointTime: productionRes.checkpointTime,
+      production: Object.fromEntries(
+        Object.entries(productionRes)
+          .filter(([key]) => key.includes('Prod'))
+          .map(([key, val]) => [key.replace('Prod', ''), val])
+      ) as any,
+      balances: Object.fromEntries(
+        Object.entries(productionRes)
+          .filter(([key]) => key.includes('Bal'))
+          .map(([key, val]) => [key.replace('Bal', ''), val])
+      ) as any,
+      productionJobsEndingAfterCheckpointTime: productionJobs,
+    };
   });
 
 export const queueProductionJob = async (
   pool: mysql.Pool,
   userId: string,
   productionType: keyof Production
-): Promise<Either<{ completionTime: Date; upgradingToTier: number }, { errorReason: string }>> => {
-  const conn = await getConn(pool);
+) =>
+  connAndTransact<
+    Either<{ completionTime: Date; upgradingToTier: number }, { errorReason: string }>
+  >(pool, userId, async conn => {
+    const now = await dbNow(conn);
+    const nowTime = now.getTime();
 
-  try {
-    return await new Promise((resolve, reject) => {
-      conn.beginTransaction(async err => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    const {
+      checkpointTime,
+      balances,
+      production: snapshottedProduction,
+      productionJobsEndingAfterCheckpointTime,
+    } = await getUserProductionAndBalancesState(conn, userId);
 
-        const now = await dbNow(conn);
-        const nowTime = now.getTime();
+    const {
+      balances: liveBalances,
+      production: liveProduction,
+    } = computeLiveUserProductionAndBalances(
+      now,
+      checkpointTime,
+      balances,
+      snapshottedProduction,
+      productionJobsEndingAfterCheckpointTime
+    );
 
-        const {
-          checkpointTime,
-          balances,
-          production: snapshottedProduction,
-          productionJobsEndingAfterCheckpointTime,
-        } = await getUserProductionAndBalancesState(conn, userId);
+    // We find what level the user's production will be upgraded to after finishing the current upgrade queue so that
+    // we appropriately charge the user for the tier after that.
+    const maxQueuedUpgradeTier =
+      liveProduction[productionType] +
+      productionJobsEndingAfterCheckpointTime
+        // Only care about upgrade jobs for the production type currently being upgraded
+        .filter(R.propEq('productionType', productionType))
+        // Only care about jobs that haven't been accounted for when computing live production and balances
+        .filter(job => job.endTime.getTime() > nowTime).length;
 
-        const {
-          balances: liveBalances,
-          production: liveProduction,
-        } = computeLiveUserProductionAndBalances(
-          now,
-          checkpointTime,
-          balances,
-          snapshottedProduction,
-          productionJobsEndingAfterCheckpointTime
-        );
-
-        // We find what level the user's production will be upgraded to after finishing the current upgrade queue so that
-        // we appropriately charge the user for the tier after that.
-        const maxQueuedUpgradeTier =
-          liveProduction[productionType] +
-          productionJobsEndingAfterCheckpointTime
-            // Only care about upgrade jobs for the production type currently being upgraded
-            .filter(R.propEq('productionType', productionType))
-            // Only care about jobs that haven't been accounted for when computing live production and balances
-            .filter(job => job.endTime.getTime() > nowTime).length;
-
-        const { cost: upgradeCost, timeMs: upgradeTimeMs } = ProductionUpgradeCostGetters[
-          productionType
-        ](maxQueuedUpgradeTier);
-        const insufficientResourceTypes = getHasSufficientBalance(upgradeCost, liveBalances);
-        if (insufficientResourceTypes) {
-          conn.rollback();
-          resolve(
-            Either.right({
-              errorReason: formatInsufficientResourceTypes(insufficientResourceTypes),
-            })
-          );
-          return;
-        }
-
-        // Compute start and end time of the upgrade
-        const startTime = Option.of(await getLastQueuedProductionJob(conn, userId))
-          .map(R.prop('endTime'))
-          .map(d => d.getTime())
-          .filter(endTime => endTime > nowTime)
-          .getOrElse(nowTime);
-        const endTime = startTime + upgradeTimeMs;
-
-        // Debit the user's balance for the upgrade cost
-        const newBalances = subtractBalances(liveBalances, upgradeCost);
-        if (Object.values(newBalances).find(bal => bal < 0)) {
-          console.error('ERROR: got negative balances somehow!!!');
-          conn.rollback();
-          reject();
-          return;
-        }
-        await setProductionAndBalances(conn, userId, liveProduction, newBalances);
-
-        // Queue the production job
-        const job: ProductionJob = {
-          startTime: new Date(startTime),
-          endTime: new Date(endTime),
-          jobType: ProductionJobType.UpdgradeProduction,
-          productionType,
-        };
-        await insertProductionJob(conn, userId, job);
-
-        await commit(conn);
-        resolve(
-          Either.left({
-            completionTime: new Date(endTime),
-            upgradingToTier: maxQueuedUpgradeTier + 1,
-          })
-        );
+    const { cost: upgradeCost, timeMs: upgradeTimeMs } = ProductionUpgradeCostGetters[
+      productionType
+    ](maxQueuedUpgradeTier);
+    const insufficientResourceTypes = getHasSufficientBalance(upgradeCost, liveBalances);
+    if (insufficientResourceTypes) {
+      throw Either.right({
+        errorReason: formatInsufficientResourceTypes(insufficientResourceTypes),
       });
+    }
+
+    // Compute start and end time of the upgrade
+    const startTime = Option.of(await getLastQueuedProductionJob(conn, userId))
+      .map(R.prop('endTime'))
+      .map(d => d.getTime())
+      .filter(endTime => endTime > nowTime)
+      .getOrElse(nowTime);
+    const endTime = startTime + upgradeTimeMs;
+
+    // Debit the user's balance for the upgrade cost
+    const newBalances = subtractBalances(liveBalances, upgradeCost);
+    if (Object.values(newBalances).find(bal => bal < 0)) {
+      throw new Error('Got negative balances somehow!!!');
+    }
+    await setProductionAndBalances(conn, userId, liveProduction, newBalances);
+
+    // Queue the production job
+    const job: ProductionJob = {
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      jobType: ProductionJobType.UpdgradeProduction,
+      productionType,
+    };
+    await insertProductionJob(conn, userId, job);
+
+    return Either.left({
+      completionTime: new Date(endTime),
+      upgradingToTier: maxQueuedUpgradeTier + 1,
     });
-  } finally {
-    conn.release();
-  }
-};
+  }).catch(err => {
+    if (err instanceof Either) {
+      return err as Either<
+        { completionTime: Date; upgradingToTier: number },
+        { errorReason: string }
+      >;
+    }
+    throw err;
+  });
 
 export const getInventoryForPlayer = async (
   conn: mysql.Pool | mysql.PoolConnection,
@@ -398,8 +370,7 @@ export const getInventoryForPlayer = async (
     `SELECT \`${TableNames.Inventory}\`.itemId, \`${TableNames.Inventory}\`.count, \`${TableNames.Inventory}\`.tier, \`${TableNames.InventoryMetadata}\`.data
     FROM \`${TableNames.Inventory}\`
     LEFT JOIN \`${TableNames.InventoryMetadata}\` ON \`${TableNames.Inventory}\`.metadataKey = \`${TableNames.InventoryMetadata}\`.id
-    WHERE userId = ?
-    FOR UPDATE;`,
+    WHERE userId = ?;`,
     [userId]
   ).then(rows =>
     rows.map(
@@ -471,10 +442,6 @@ export const getActiveRaid = async (
 ): Promise<Option<RaidRow>> =>
   query<RaidRow>(
     conn,
-    // `FOR UPDATE` is used here to prevent race conditions between multiple attempts to queue raids for the same
-    // user.  Only one connection will be able to read the raid rows for `userId` at a time, preventing
-    // multiple raids from getting started at once.
-    `SELECT * FROM \`${TableNames.Raids}\` WHERE userId = ? AND returnTime > NOW()
-    FOR UPDATE;`,
+    `SELECT * FROM \`${TableNames.Raids}\` WHERE userId = ? AND returnTime > NOW();`,
     [userId]
   ).then(([row]) => Option.of(row));

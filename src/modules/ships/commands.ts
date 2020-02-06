@@ -5,17 +5,17 @@ import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
 import { Option } from 'funfix-core';
 
-import { dbNow, getConn, commit } from 'src/dbUtil';
+import { dbNow, getConn } from 'src/dbUtil';
 import { CONF } from 'src/conf';
 import { cmd } from 'src';
 import {
-  getUserFleetState,
   getUserProductionAndBalancesState,
   queueProductionJob,
   getInventoryForPlayer,
   getActiveRaid,
   RaidDurationTier,
   insertRaid,
+  connAndTransact,
 } from './db';
 import {
   Fleet,
@@ -23,6 +23,7 @@ import {
   queueFleetProduction,
   AllBuildableShipTypes,
   BuildableShip,
+  getUserFleetState,
 } from './fleet';
 import {
   computeLiveUserProductionAndBalances,
@@ -444,28 +445,26 @@ const raid = async ({
 }: CommandHandlerArgs): Promise<string | string[]> => {
   const [rawLocation, rawDuration] = args;
 
-  if (R.isNil(rawLocation) || R.isNil(rawDuration)) {
-    const activeRaid = await getActiveRaid(pool, userId);
+  const activeRaid = await getActiveRaid(pool, userId);
 
-    if (activeRaid.isEmpty()) {
-      const inventory = await getInventoryForPlayer(pool, userId);
-      const availableRaidLocations = await getAvailableRaidLocations(userId, inventory);
+  if (R.isNil(rawLocation) || (R.isNil(rawDuration) && activeRaid.isEmpty())) {
+    const inventory = await getInventoryForPlayer(pool, userId);
+    const availableRaidLocations = await getAvailableRaidLocations(userId, inventory);
 
-      return [
-        `You have no active raid.  You have access to the following raid locations: ${formatRaidLocations(
-          availableRaidLocations
-        )}`,
-        `You can start a raid with \`${cmd('raid')} <location> <short|med|long>\``,
-      ];
-    } else {
-      const raid = activeRaid.get();
-      const now = await dbNow(pool);
-      const remainingTimeString = dayjs(now).to(dayjs(raid.returnTime));
+    return [
+      `You have no active raid.  You have access to the following raid locations: ${formatRaidLocations(
+        availableRaidLocations
+      )}`,
+      `You can start a raid with \`${cmd('raid')} <location> <short|med|long>\``,
+    ];
+  } else if (!activeRaid.isEmpty()) {
+    const raid = activeRaid.get();
+    const now = await dbNow(pool);
+    const remainingTimeString = dayjs(now).to(dayjs(raid.returnTime));
 
-      return `You have an active ${getRaidTimeDurString(raid.durationTier)} raid to ${
-        CONF.ships.raid_location_names[raid.location].name
-      }.  It will return ${remainingTimeString}`;
-    }
+    return `You have an active ${getRaidTimeDurString(raid.durationTier)} raid to ${
+      CONF.ships.raid_location_names[raid.location].name
+    }.  It will return ${remainingTimeString}`;
   }
 
   const inventory = await getInventoryForPlayer(pool, userId);
@@ -486,77 +485,52 @@ const raid = async ({
     return 'Invalid raid duration; must be one of short, medium, long';
   }
 
-  const conn = await getConn(pool);
-  try {
-    return await new Promise<string>((resolve, reject) => {
-      conn.beginTransaction(async err => {
-        if (err) {
-          reject(err);
-          return;
-        }
+  return connAndTransact(pool, userId, async (conn: mysql.PoolConnection) => {
+    // Figure out what the current fleet looks like which will be sent on this raid
+    const [
+      now,
+      { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime },
+    ] = await Promise.all([dbNow(conn), getUserFleetState(conn, userId)] as const);
+    const liveFleet = computeLiveFleet(now, checkpointFleet, fleetJobsEndingAfterCheckpointTime);
 
-        try {
-          // Figure out what the current fleet looks like which will be sent on this raid
-          const [
-            now,
-            { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime },
-          ] = await Promise.all([dbNow(pool), getUserFleetState(conn, userId)] as const);
-          const liveFleet = computeLiveFleet(
-            now,
-            checkpointFleet,
-            fleetJobsEndingAfterCheckpointTime
-          );
+    // Compute departure + return time and send off the fleet
+    const departureTime = now;
+    const returnTime = dayjs(departureTime)
+      .add(getRaidDurationMs(durationTier), 'ms')
+      .toDate();
 
-          // Compute departure + return time and send off the fleet
-          const departureTime = now;
-          const returnTime = dayjs(departureTime)
-            .add(getRaidDurationMs(durationTier), 'ms')
-            .toDate();
-
-          await insertRaid(conn, {
-            userId,
-            durationTier,
-            location,
-            departureTime,
-            returnTime,
-            ...liveFleet,
-          });
-
-          // Register a reminder for when the fleet returns
-          if (msg.channel.type === 0) {
-            setReminder(
-              client,
-              conn,
-              {
-                userId,
-                notificationType: NotificationType.RaidReturn,
-                guildId: msg.channel.guild.id,
-                channelId: msg.channel.id,
-                notificationPayload: '',
-                reminderTime: returnTime,
-              },
-              now
-            );
-          } else {
-            console.warn(
-              'Raid dispatch message received on non-text channel or something; not setting notification.'
-            );
-          }
-
-          await commit(conn);
-          resolve(`Raid has been dispatched!  It will return ${dayjs(now).to(returnTime)}`);
-        } catch (err) {
-          console.error(err);
-          conn.rollback();
-          reject(err);
-        }
-      });
+    await insertRaid(conn, {
+      userId,
+      durationTier,
+      location,
+      departureTime,
+      returnTime,
+      ...liveFleet,
     });
-  } catch (err) {
-    throw err;
-  } finally {
-    conn.release();
-  }
+
+    // Register a reminder for when the fleet returns
+    if (msg.channel.type === 0) {
+      setReminder(
+        client,
+        conn,
+        {
+          userId,
+          notificationType: NotificationType.RaidReturn,
+          guildId: msg.channel.guild.id,
+          channelId: msg.channel.id,
+          notificationPayload: '',
+          reminderTime: returnTime,
+        },
+        now
+      );
+    } else {
+      console.warn(
+        'Raid dispatch message received on non-text channel or something; not setting notification.'
+      );
+    }
+
+    return `Raid has been dispatched!  It will return ${dayjs(now).to(returnTime)}`;
+  });
 };
 
 const CommandHandlers: {

@@ -7,30 +7,30 @@ export const ProductionUpgradeCostGetters: {
 } = {
   tier1: (curTier: number) => ({
     cost: {
-      tier1: BigInt(mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800),
-      tier2: BigInt(mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400),
+      tier1: mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800n,
+      tier2: mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400n,
       tier3: 0n,
       special1: 0n,
     },
-    timeMs: mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) - 60 * 1000,
+    timeMs: Number(mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) - 60n * 1000n),
   }),
   tier2: (curTier: number) => ({
     cost: {
-      tier1: BigInt(mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400),
-      tier2: BigInt(mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800),
+      tier1: mkExpoCurve(400, 1.60409, 0.4)(curTier) - 400n,
+      tier2: mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800n,
       tier3: 0n,
       special1: 0n,
     },
-    timeMs: mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) * 1.2 - 60 * 1000,
+    timeMs: Number(mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier)) * 1.2 - 60 * 1000,
   }),
   tier3: (curTier: number) => ({
     cost: {
-      tier1: BigInt(mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550),
-      tier2: BigInt(mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550),
-      tier3: BigInt(mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800),
+      tier1: mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550n,
+      tier2: mkExpoCurve(550, 1.60409, 0.4)(curTier) - 550n,
+      tier3: mkExpoCurve(800, 1.60409, 0.4)(curTier) - 800n,
       special1: 0n,
     },
-    timeMs: mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier) * 1.6 - 60 * 1000,
+    timeMs: Number(mkExpoCurve(60 * 1000, 1.31409, 0.64)(curTier)) * 1.6 - 60 * 1000,
   }),
 };
 

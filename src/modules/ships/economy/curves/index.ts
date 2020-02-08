@@ -3,4 +3,4 @@
  */
 export const mkExpoCurve = (multiplier: number, base: number, exponentMultiplier = 1) => (
   level: number
-): number => multiplier * Math.pow(base, level * exponentMultiplier);
+): bigint => BigInt(Math.round(multiplier * Math.pow(base, level * exponentMultiplier)));

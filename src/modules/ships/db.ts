@@ -19,7 +19,7 @@ import {
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
 import { Item } from './inventory/item';
 import { RaidLocation } from './raids/types';
-import { InventoryTransactionRow } from './inventory';
+import { InventoryTransactionRow, dedupInventory } from './inventory';
 
 export const TableNames = {
   Fleet: 'ships_fleets',
@@ -228,10 +228,10 @@ export const getUserProductionAndBalancesState = async (
       tier1Prod: number;
       tier2Prod: number;
       tier3Prod: number;
-      tier1Bal: number;
-      tier2Bal: number;
-      tier3Bal: number;
-      special1Bal: number;
+      tier1Bal: string;
+      tier2Bal: string;
+      tier3Bal: string;
+      special1Bal: string;
       userId: string;
       checkpointTime: Date;
     }>(conn, `SELECT * FROM \`${TableNames.Production}\` WHERE userId = ?;`, [userId]);
@@ -269,7 +269,7 @@ export const getUserProductionAndBalancesState = async (
       balances: Object.fromEntries(
         Object.entries(productionRes)
           .filter(([key]) => key.includes('Bal'))
-          .map(([key, val]) => [key.replace('Bal', ''), val])
+          .map(([key, val]) => [key.replace('Bal', ''), BigInt(val)])
       ) as any,
       productionJobsEndingAfterCheckpointTime: productionJobs,
     };
@@ -470,46 +470,13 @@ export const getInventoryForPlayer = async (
     }))
   );
 
-  return inventoryTransactionsToApply.reduce((acc, transaction): Item[] => {
-    const matchingItemIx = items.findIndex(
-      item =>
-        item.id === transaction.itemId &&
-        item.tier === transaction.tier &&
-        item.metadata === transaction.metadataKey
-    );
-    if (matchingItemIx !== -1) {
-      const matchingItem = items[matchingItemIx]!;
-      matchingItem.count = matchingItem.count + BigInt(transaction.count);
-      if (matchingItem.count < 0) {
-        console.error(
-          `Transaction caused item count to go negative for userId "${userId}".  Transaction: `,
-          transaction
-        );
-        matchingItem.count = 0n;
-      }
-      if (matchingItem.count === 0n) {
-        // All items removed from the inventory
-        return R.remove(matchingItemIx, 1, acc);
-      }
-      return acc;
-    } else {
-      if (transaction.count < 0) {
-        console.error(
-          `Transaction with negative count targeting item id "${transaction.itemId}" which isn't in inventory for userId "${userId}": `,
-          transaction
-        );
-        return acc;
-      }
-
-      const newItem: Item = {
-        id: transaction.itemId,
-        count: transaction.count,
-        metadata: transaction.metadata,
-        tier: transaction.tier,
-      };
-      return [...acc, newItem];
-    }
-  }, items);
+  return dedupInventory([
+    ...items,
+    ...inventoryTransactionsToApply.map(transaction => ({
+      ...transaction,
+      id: transaction.itemId,
+    })),
+  ]);
 };
 
 export enum RaidDurationTier {

@@ -21,6 +21,10 @@ export interface ItemDefinition {
   description?: string;
   isTiered?: boolean;
   imageURL?: string | null;
+  /**
+   * Just used for sorting right now
+   */
+  value: number;
 }
 
 export interface Item {

@@ -28,7 +28,14 @@ const getResponse = async (
   pool: mysql.Pool,
   msgContent: string,
   msg: Eris.Message
-): Promise<string | undefined | null | string[] | { embed: EmbedOptions }> => {
+): Promise<
+  | string
+  | undefined
+  | null
+  | string[]
+  | { type: 'embed'; embed: EmbedOptions }
+  | { type: 'file'; file: Buffer; name: string }
+> => {
   const lowerMsg = msgContent.trim().toLowerCase();
 
   if (!lowerMsg.startsWith(CONF.general.command_symbol)) {
@@ -111,7 +118,11 @@ const initMsgHandler = (pool: mysql.Pool) => {
     if (Array.isArray(res)) {
       sendMultipleMessages(msg, res);
     } else {
-      client.createMessage(msg.channel.id, res);
+      if (typeof res === 'string' || res.type === 'embed') {
+        client.createMessage(msg.channel.id, res);
+      } else {
+        client.createMessage(msg.channel.id, {}, res);
+      }
     }
   });
 };

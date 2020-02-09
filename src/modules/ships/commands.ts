@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import Eris from 'eris';
+import Eris, { EmbedOptions } from 'eris';
 import mysql from 'mysql';
 import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
@@ -39,10 +39,11 @@ import {
 import { ProductionIncomeGetters } from './economy/curves/production';
 import { setReminder, NotificationType } from './scheduler';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
-import { formatInventory, getRaidTimeDurString } from './formatters';
+import { getRaidTimeDurString } from './formatters';
 import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids';
 import { RaidLocation, RaidResult } from './raids/types';
 import { InventoryTransactionRow } from './inventory';
+import BankImageTask from 'src/vendored/oldschoolbot/bankImage';
 
 const fmtCount = (count: number | bigint): string =>
   numeral(count).format(count > 10000 ? '1,000.0a' : '1,000');
@@ -435,9 +436,16 @@ const buildFleet = async ({
   }
 };
 
-const printInventory = async ({ pool, userId }: CommandHandlerArgs): Promise<string | string[]> => {
+const printInventory = async ({
+  pool,
+  userId,
+}: CommandHandlerArgs): Promise<{ type: 'file'; file: Buffer; name: string }> => {
   const inventoryForPlayer = await getInventoryForPlayer(pool, userId);
-  return formatInventory(inventoryForPlayer);
+  const invImageBuilder = new BankImageTask();
+  await invImageBuilder.init();
+  const invImage = await invImageBuilder.generateBankImage(inventoryForPlayer, 'Your Inventory');
+  return { type: 'file' as const, file: invImage, name: 'inventory.png' };
+  // return formatInventory(inventoryForPlayer);
 };
 
 const formatRaidLocations = (names: RaidLocation[]): string =>
@@ -599,7 +607,9 @@ const raid = async ({
 };
 
 const CommandHandlers: {
-  [command: string]: (args: CommandHandlerArgs) => Promise<string | string[]>;
+  [command: string]: (
+    args: CommandHandlerArgs
+  ) => Promise<string | string[] | { type: 'file'; file: Buffer; name: string }>;
 } = {
   f: printCurFleet,
   fleet: printCurFleet,
@@ -625,7 +635,14 @@ export const maybeHandleCommand = ({
   msg: Eris.Message;
   userId: string;
   splitContent: string[];
-}): undefined | Promise<string | string[]> => {
+}):
+  | undefined
+  | Promise<
+      | string
+      | string[]
+      | { type: 'embed'; embed: EmbedOptions }
+      | { type: 'file'; file: Buffer; name: string }
+    > => {
   const [command, ...args] = splitContent;
   const handler = CommandHandlers[command];
   if (!handler) {

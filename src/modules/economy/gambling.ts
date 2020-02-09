@@ -138,7 +138,7 @@ export const roulette = async (
   msg: string,
   pool: mysql.Pool,
   user: Eris.User
-): Promise<string | { embed: EmbedOptions }> => {
+): Promise<string | { type: 'embed'; embed: EmbedOptions }> => {
   let msgParts = msg.split(' ');
 
   if (
@@ -212,7 +212,8 @@ export const roulette = async (
   else if (blackWin.includes(String(roll))) color = 0x000000;
   else color = 0x00ff00;
 
-  let embedObject: { embed: EmbedOptions } = {
+  let embedObject: { type: 'embed'; embed: EmbedOptions } = {
+    type: 'embed' as const,
     embed: {
       title: winEmoji + `  You rolled ` + (roll === 37 ? '00' : roll) + `  ` + winEmoji,
       //description: balance + " --> " + endBalance,

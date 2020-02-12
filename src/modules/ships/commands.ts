@@ -39,7 +39,7 @@ import {
 import { ProductionIncomeGetters } from './economy/curves/production';
 import { setReminder, NotificationType } from './scheduler';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
-import { getRaidTimeDurString } from './formatters';
+import { getRaidTimeDurString, formatFleetJob } from './formatters';
 import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids';
 import { RaidLocation, RaidResult } from './raids/types';
 import { InventoryTransactionRow } from './inventory';
@@ -445,7 +445,6 @@ const printInventory = async ({
   await invImageBuilder.init();
   const invImage = await invImageBuilder.generateBankImage(inventoryForPlayer, 'Your Inventory');
   return { type: 'file' as const, file: invImage, name: 'inventory.png' };
-  // return formatInventory(inventoryForPlayer);
 };
 
 const formatRaidLocations = (names: RaidLocation[]): string =>
@@ -456,12 +455,12 @@ const formatRaidLocations = (names: RaidLocation[]): string =>
 
 export const getRaidDurationMS = (durationTier: RaidDurationTier): number =>
   ({
-    // [RaidDurationTier.Short]: 45 * 60 * 1000,
-    // [RaidDurationTier.Medium]: 2 * 60 * 60 * 1000,
-    // [RaidDurationTier.Long]: 8 * 60 * 60 * 1000,
-    [RaidDurationTier.Short]: 2 * 1000,
-    [RaidDurationTier.Medium]: 5 * 1000,
-    [RaidDurationTier.Long]: 10 * 1000,
+    [RaidDurationTier.Short]: 45 * 60 * 1000,
+    [RaidDurationTier.Medium]: 2 * 60 * 60 * 1000,
+    [RaidDurationTier.Long]: 8 * 60 * 60 * 1000,
+    // [RaidDurationTier.Short]: 2 * 1000,
+    // [RaidDurationTier.Medium]: 5 * 1000,
+    // [RaidDurationTier.Long]: 10 * 1000,
   }[durationTier]);
 
 const raid = async ({
@@ -606,10 +605,178 @@ const raid = async ({
   });
 };
 
+const printStatus = async ({
+  msg,
+  pool,
+  userId,
+}: CommandHandlerArgs): Promise<{ type: 'embed'; embed: EmbedOptions }> => {
+  const {
+    now,
+    liveProduction,
+    liveBalances,
+    liveFleet,
+    productionJobsEndingAfterCheckpointTime,
+    fleetJobsEndingAfterCheckpointTime,
+    activeRaid,
+  } = await connAndTransact(pool, userId, async conn => {
+    const [
+      now,
+      {
+        production: checkpointProduction,
+        balances: checkpointBalances,
+        checkpointTime: productionCheckpointTime,
+        productionJobsEndingAfterCheckpointTime,
+      },
+      { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime },
+      activeRaid,
+    ] = await Promise.all([
+      dbNow(conn),
+      getUserProductionAndBalancesState(conn, userId),
+      getUserFleetState(conn, userId),
+      getActiveRaid(conn, userId),
+    ]);
+
+    const {
+      production: liveProduction,
+      balances: liveBalances,
+    } = computeLiveUserProductionAndBalances(
+      now,
+      productionCheckpointTime,
+      checkpointBalances,
+      checkpointProduction,
+      productionJobsEndingAfterCheckpointTime
+    );
+    const applicableFleetTransactions = await getApplicableFleetTransactions(
+      conn,
+      checkpointFleet.checkpointTime,
+      userId
+    );
+    const liveFleet = computeLiveFleet(
+      now,
+      checkpointFleet,
+      fleetJobsEndingAfterCheckpointTime,
+      applicableFleetTransactions
+    );
+
+    return {
+      now,
+      liveProduction,
+      liveBalances,
+      liveFleet,
+      productionJobsEndingAfterCheckpointTime,
+      fleetJobsEndingAfterCheckpointTime,
+      activeRaid,
+    };
+  });
+
+  const nowDayjs = dayjs(now);
+  const clonedProduction = { ...liveProduction };
+  const productionJobsEndingAfterNow = productionJobsEndingAfterCheckpointTime.filter(job =>
+    dayjs(job.endTime).isAfter(nowDayjs)
+  );
+  const fleetJobsEndingAfterNow = fleetJobsEndingAfterCheckpointTime.filter(job =>
+    dayjs(job.endTime).isAfter(nowDayjs)
+  );
+
+  return {
+    type: 'embed',
+    embed: {
+      color: 16562691,
+      timestamp: new Date().toISOString(),
+      image: {
+        url: 'https://cdn.discordapp.com/embed/avatars/0.png',
+      },
+      author: {
+        name: `${msg.author.username}'s Ships Status`,
+        icon_url: msg.author.avatarURL,
+      },
+      fields: [
+        {
+          name: 'Resource Balances',
+          value: (['tier1', 'tier2', 'tier3', 'special1'] as (keyof Balances)[])
+            .map(key => {
+              const amount = liveBalances[key];
+              const name = CONF.ships.resource_names[key];
+              const productionPerSecond =
+                key in ProductionIncomeGetters
+                  ? Number(
+                      ProductionIncomeGetters[key as keyof typeof ProductionIncomeGetters](
+                        liveProduction[key as keyof typeof liveProduction],
+                        100000
+                      )
+                    ) / 100
+                  : null;
+
+              return `- **${name}**: ${
+                amount < 10000 ? amount : numeral(amount).format('1,000.0a')
+              }${
+                R.isNil(productionPerSecond)
+                  ? ''
+                  : ` (+${numeral(productionPerSecond).format('1,000.0')}/sec)`
+              }`;
+            })
+            .join('\n'),
+          inline: true,
+        },
+        {
+          name: 'Current Raid',
+          value: activeRaid
+            .map(
+              raid =>
+                `Raid to ${
+                  CONF.ships.raid_location_names[raid.location]
+                } currently active; returns ${nowDayjs.to(dayjs(raid.returnTime))}`
+            )
+            .getOrElse('*No active raid*'),
+          inline: true,
+        },
+        {
+          name: 'Fleet',
+          value: (['ship1', 'ship2', 'ship3', 'ship4', 'shipSpecial1'] as (keyof Fleet)[])
+            .map(key => {
+              const name = CONF.ships.ship_names[key];
+              const count = Number(liveFleet[key]);
+
+              return `**${name}**: ${numeral(count).format('1,000')}`;
+            })
+            .join('\n'),
+        },
+        {
+          name: 'Production Upgrades',
+          value: R.isEmpty(productionJobsEndingAfterNow)
+            ? '*No active production upgrades*'
+            : productionJobsEndingAfterNow
+                .map(job => {
+                  const formatted = formatProductionJob(
+                    job,
+                    clonedProduction[job.productionType],
+                    nowDayjs
+                  );
+                  clonedProduction[job.productionType] += 1;
+                  return formatted;
+                })
+                .join(','),
+        },
+        {
+          name: 'Ship Construction',
+          value: R.isEmpty(fleetJobsEndingAfterNow)
+            ? '*No active fleet construction jobs*'
+            : fleetJobsEndingAfterNow.map(job => formatFleetJob(job, nowDayjs)).join('\n'),
+        },
+      ],
+    },
+  };
+};
+
 const CommandHandlers: {
   [command: string]: (
     args: CommandHandlerArgs
-  ) => Promise<string | string[] | { type: 'file'; file: Buffer; name: string }>;
+  ) => Promise<
+    | string
+    | string[]
+    | { type: 'file'; file: Buffer; name: string }
+    | { type: 'embed'; embed: EmbedOptions }
+  >;
 } = {
   f: printCurFleet,
   fleet: printCurFleet,
@@ -624,6 +791,10 @@ const CommandHandlers: {
   inv: printInventory,
   inventory: printInventory,
   raid,
+  s: printStatus,
+  stat: printStatus,
+  status: printStatus,
+  '': printStatus,
 };
 
 export const maybeHandleCommand = ({

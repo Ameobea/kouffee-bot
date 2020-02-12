@@ -227,13 +227,21 @@ export const getUserFleetState = (
     if (R.isNil(fleetRes)) {
       fleetRes = { ...buildDefaultFleet(), userId, checkpointTime: await dbNow(conn) };
       await setFleet(conn, userId, fleetRes);
+    } else {
+      fleetRes = Object.fromEntries(
+        Object.entries(fleetRes).map(([key, val]) =>
+          ['userId', 'checkpointTime'].includes(key) ? [key, val] : [key, BigInt(val)]
+        )
+      ) as Fleet & { userId: string; checkpointTime: Date };
     }
 
-    const fleetJobs = await query<FleetJob>(
-      conn,
-      `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime >= ?;`,
-      [userId, fleetRes.checkpointTime]
-    );
+    const fleetJobsEndingAfterCheckpointTime = (
+      await query<FleetJob>(
+        conn,
+        `SELECT * FROM \`${TableNames.FleetJobs}\` WHERE userId = ? AND endTime >= ?;`,
+        [userId, fleetRes.checkpointTime]
+      )
+    ).map(job => ({ ...job, shipCount: BigInt(job.shipCount) }));
 
-    return { fleet: fleetRes, fleetJobsEndingAfterCheckpointTime: fleetJobs };
+    return { fleet: fleetRes, fleetJobsEndingAfterCheckpointTime };
   });

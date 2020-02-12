@@ -5,6 +5,8 @@ import { Balances } from 'src/modules/ships/economy';
 import { CONF } from 'src/conf';
 import { Item, ITEMS_BY_ID } from './inventory/item';
 import { RaidDurationTier } from './db';
+import { FleetJob } from './fleet';
+import dayjs, { Dayjs } from 'dayjs';
 
 export const formatInsufficientResourceTypes = (
   insufficientResourceTypes: (keyof Balances)[]
@@ -37,3 +39,8 @@ export const getRaidTimeDurString = (durationTier: RaidDurationTier): string =>
     [RaidDurationTier.Medium]: 'Medium',
     [RaidDurationTier.Long]: 'Long',
   }[durationTier]);
+
+export const formatFleetJob = (job: FleetJob, now: Dayjs): string =>
+  `Construct ${numeral(job.shipCount).format('1,000')} ${
+    CONF.ships.ship_names[job.shipType]
+  }; Completes ${now.to(dayjs(job.endTime))}`;

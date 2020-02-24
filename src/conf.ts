@@ -59,6 +59,12 @@ export interface RaidLocationDescriptor {
 }
 
 export interface ShipsConf {
+  embed_color: number;
+  google_cloud: {
+    project_id: string;
+    region: string;
+    images_bucket_name: string;
+  };
   resource_names: { [K in keyof Balances]: string };
   ship_names: { [K in keyof Fleet]: string };
   tier_names: { [K in Tier]: string };

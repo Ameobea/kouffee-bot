@@ -14,6 +14,12 @@ currency_name = "Miku Bucks"
 
 [ships]
 timing_multiplier = 1.0
+embed_color = 16562691
+
+[ships.google_cloud]
+project_id = "project-id"
+region = "us-west1"
+images_bucket_name = "images-bucket-name"
 
 [ships.resource_names]
 tier1 = "Hydrogen"

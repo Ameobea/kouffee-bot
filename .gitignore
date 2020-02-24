@@ -106,3 +106,5 @@ dist
 dist/*
 !dist/.gitkeep
 conf.toml
+
+service-account.json

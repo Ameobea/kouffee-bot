@@ -44,6 +44,7 @@ import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids'
 import { RaidLocation, RaidResult } from './raids/types';
 import { InventoryTransactionRow } from './inventory';
 import BankImageTask from 'src/vendored/oldschoolbot/bankImage';
+import { uploadImage } from './imageUploading';
 
 const fmtCount = (count: number | bigint): string =>
   numeral(count).format(count > 10000 ? '1,000.0a' : '1,000');
@@ -618,6 +619,7 @@ const printStatus = async ({
     productionJobsEndingAfterCheckpointTime,
     fleetJobsEndingAfterCheckpointTime,
     activeRaid,
+    imageURL,
   } = await connAndTransact(pool, userId, async conn => {
     const [
       now,
@@ -629,11 +631,21 @@ const printStatus = async ({
       },
       { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime },
       activeRaid,
+      imageURL,
     ] = await Promise.all([
       dbNow(conn),
       getUserProductionAndBalancesState(conn, userId),
       getUserFleetState(conn, userId),
       getActiveRaid(conn, userId),
+      getInventoryForPlayer(conn, userId).then(async inventoryForPlayer => {
+        const invImageBuilder = new BankImageTask();
+        await invImageBuilder.init();
+        const invImage = await invImageBuilder.generateBankImage(
+          inventoryForPlayer,
+          'Your Inventory'
+        );
+        return uploadImage(invImage);
+      }),
     ]);
 
     const {
@@ -666,25 +678,26 @@ const printStatus = async ({
       productionJobsEndingAfterCheckpointTime,
       fleetJobsEndingAfterCheckpointTime,
       activeRaid,
+      imageURL,
     };
   });
 
   const nowDayjs = dayjs(now);
   const clonedProduction = { ...liveProduction };
-  const productionJobsEndingAfterNow = productionJobsEndingAfterCheckpointTime.filter(job =>
-    dayjs(job.endTime).isAfter(nowDayjs)
+  const jobIsAfterNow = (job: { endTime: Date }) => dayjs(job.endTime).isAfter(nowDayjs);
+  const productionJobsEndingAfterNow = productionJobsEndingAfterCheckpointTime.filter(
+    jobIsAfterNow
   );
-  const fleetJobsEndingAfterNow = fleetJobsEndingAfterCheckpointTime.filter(job =>
-    dayjs(job.endTime).isAfter(nowDayjs)
-  );
+  const fleetJobsEndingAfterNow = fleetJobsEndingAfterCheckpointTime.filter(jobIsAfterNow);
+  console.log({ imageURL });
 
   return {
     type: 'embed',
     embed: {
-      color: 16562691,
+      color: CONF.ships.embed_color,
       timestamp: new Date().toISOString(),
       image: {
-        url: 'https://cdn.discordapp.com/embed/avatars/0.png',
+        url: imageURL,
       },
       author: {
         name: `${msg.author.username}'s Ships Status`,
@@ -724,7 +737,7 @@ const printStatus = async ({
             .map(
               raid =>
                 `Raid to ${
-                  CONF.ships.raid_location_names[raid.location]
+                  CONF.ships.raid_location_names[raid.location].name
                 } currently active; returns ${nowDayjs.to(dayjs(raid.returnTime))}`
             )
             .getOrElse('*No active raid*'),

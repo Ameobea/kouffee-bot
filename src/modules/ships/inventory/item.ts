@@ -39,7 +39,12 @@ export const ITEMS_BY_ID: Map<number, ItemDefinition> = new Map();
 export const initItemData = async () => {
   const fileContent = await new Promise<string>((resolve, reject) =>
     fs.readFile(
-      path.join(__dirname, '../../../../../src/modules/ships/inventory/items.yml'),
+      path.join(
+        __dirname,
+        __dirname.includes('dist')
+          ? '../../../../../src/modules/ships/inventory/items.yml'
+          : './items.yml'
+      ),
       'utf8',
       (err, data) => {
         if (err) {

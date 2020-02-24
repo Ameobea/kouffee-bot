@@ -8,14 +8,14 @@ import { loadConf } from '../src/conf';
 import {
   TableNames,
   insertRaid,
-  RaidDurationTier,
   RaidRow,
   connAndTransact,
   transact,
 } from '../src/modules/ships/db';
 import { timeout } from '../src/util';
-import { RaidLocation } from '../src/modules/ships/raids';
+import { RaidLocation } from '../src/modules/ships/raids/types';
 import { buildDefaultFleet } from '../src/modules/ships/fleet';
+import { RaidDurationTier } from '../src/modules/ships/raids/types';
 
 let pool: mysql.Pool;
 

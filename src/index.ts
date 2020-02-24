@@ -143,7 +143,7 @@ const init = async () => {
 
   await initItemData().catch(err => {
     console.error('Error initializing item data: ', err);
-    process.exit(1);
+    throw err;
   });
   console.log('Loading item data item database file');
 

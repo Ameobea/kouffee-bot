@@ -1,9 +1,8 @@
 import * as R from 'ramda';
 import { ValueOf } from 'ameo-utils/dist/types';
 
-import { RaidLocation, RaidResult } from './types';
+import { RaidLocation, RaidResult, RaidDurationTier } from './types';
 import { Item } from 'src/modules/ships/inventory/item';
-import { RaidDurationTier } from '../db';
 import { Fleet } from '../fleet';
 import { rollRaidReward } from './loot';
 import { maybeDoCombat } from './combat';

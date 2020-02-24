@@ -1,12 +1,11 @@
 import * as R from 'ramda';
+import { UnimplementedError } from 'ameo-utils/dist/util';
 
+import { randomInt } from 'src/util';
 import { Item, Tier } from '../inventory/item';
-import { RaidLocation } from './types';
-import { RaidDurationTier } from '../db';
 import { Fleet } from '../fleet';
 import { getRaidDurationMS } from '../commands';
-import { UnimplementedError } from 'ameo-utils/dist/util';
-import { randomInt } from 'src/util';
+import { RaidLocation, RaidDurationTier } from './types';
 
 const RewardMultiplierByDurationTier: { [K in RaidDurationTier]: number } = {
   [RaidDurationTier.Short]: 1.0,
@@ -39,14 +38,10 @@ const rollLootTable = (table: LootTable, probabilityMultiplier: number): Item[] 
     }
 
     let total = 0;
-    let normalizedRoll = roll - table.emptySlotCount;
+    const normalizedRoll = roll - table.emptySlotCount;
     const slot = table.slots.find(({ slotCount }) => {
       total += slotCount;
-
-      if (normalizedRoll <= total) {
-        return true;
-      }
-      return false;
+      return normalizedRoll <= total;
     })!;
     const items = slot.getItems();
     items.forEach(item => {

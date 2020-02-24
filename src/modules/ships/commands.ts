@@ -13,7 +13,6 @@ import {
   queueProductionJob,
   getInventoryForPlayer,
   getActiveRaid,
-  RaidDurationTier,
   insertRaid,
   connAndTransact,
   getApplicableFleetTransactions,
@@ -41,7 +40,7 @@ import { setReminder, NotificationType } from './scheduler';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
 import { getRaidTimeDurString, formatFleetJob } from './formatters';
 import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids';
-import { RaidLocation, RaidResult } from './raids/types';
+import { RaidLocation, RaidResult, RaidDurationTier } from './raids/types';
 import { InventoryTransactionRow } from './inventory';
 import BankImageTask from 'src/vendored/oldschoolbot/bankImage';
 import { uploadImage } from './imageUploading';

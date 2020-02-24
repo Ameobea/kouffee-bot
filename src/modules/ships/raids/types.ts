@@ -1,6 +1,11 @@
 import { Item } from '../inventory/item';
 import { Fleet } from '../fleet';
-import { RaidDurationTier } from '../db';
+
+export enum RaidDurationTier {
+  Short,
+  Medium,
+  Long,
+}
 
 export enum RaidLocation {
   Location1,

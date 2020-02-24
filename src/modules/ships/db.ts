@@ -18,7 +18,7 @@ import {
 } from './economy';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
 import { Item } from './inventory/item';
-import { RaidLocation } from './raids/types';
+import { RaidLocation, RaidDurationTier } from './raids/types';
 import { InventoryTransactionRow, dedupInventory } from './inventory';
 
 export const TableNames = {
@@ -478,12 +478,6 @@ export const getInventoryForPlayer = async (
     })),
   ]);
 };
-
-export enum RaidDurationTier {
-  Short,
-  Medium,
-  Long,
-}
 
 export interface RaidRow extends Fleet {
   userId: string;

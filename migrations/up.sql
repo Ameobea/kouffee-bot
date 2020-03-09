@@ -137,3 +137,7 @@ CREATE TABLE `custom_commands` (
 ) ENGINE = InnoDB;
 ALTER TABLE `custom_commands` ADD UNIQUE(`command`);
 ALTER TABLE `custom_commands` ADD INDEX(`command`);
+
+CREATE TABLE `liked_tweets` (
+  `tweet_id` BIGINT NOT NULL
+) ENGINE = InnoDB;

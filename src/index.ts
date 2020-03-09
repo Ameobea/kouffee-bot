@@ -13,6 +13,7 @@ import {
   addCustomCommand,
   removeCustomCommand,
 } from './modules/custom-command';
+import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -69,6 +70,8 @@ const getResponse = async (
     );
   } else if (lowerMsg.startsWith(cmd('removecommand'))) {
     return removeCustomCommand(pool, rest[0], msg.author);
+  } else if (lowerMsg.startsWith(cmd('tweet'))) {
+    return getRandomLikedTweetURL(pool);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

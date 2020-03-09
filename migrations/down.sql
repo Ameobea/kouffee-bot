@@ -15,3 +15,5 @@ DROP TABLE ships_fleet-transactions;
 DROP TABLE ships_inventory-transactions;
 
 DROP TABLE custom_commands;
+
+DROP TABLE liked_tweets;

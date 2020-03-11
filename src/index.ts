@@ -14,6 +14,7 @@ import {
   removeCustomCommand,
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
+import { createReminder } from './modules/remind';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -37,6 +38,11 @@ const getResponse = async (
   | { type: 'embed'; embed: EmbedOptions }
   | { type: 'file'; file: Buffer; name: string }
 > => {
+  // Ignore our own messages
+  if (msg.author.id === '663604736485752832') {
+    return;
+  }
+
   const lowerMsg = msgContent.trim().toLowerCase();
 
   if (!lowerMsg.startsWith(CONF.general.command_symbol)) {
@@ -72,6 +78,8 @@ const getResponse = async (
     return removeCustomCommand(pool, rest[0], msg.author);
   } else if (lowerMsg.startsWith(cmd('tweet'))) {
     return getRandomLikedTweetURL(pool);
+  } else if (lowerMsg.startsWith(cmd('remind'))) {
+    return createReminder(client, pool, msg);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

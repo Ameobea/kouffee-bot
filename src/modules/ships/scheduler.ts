@@ -19,9 +19,10 @@ import { deserializeRaidResult } from './raids';
 import { RaidResult } from './raids/types';
 
 export enum NotificationType {
-  ProductionUpgrade,
-  ShipBuild,
-  RaidReturn,
+  ProductionUpgrade = 0,
+  ShipBuild = 1,
+  RaidReturn = 2,
+  Arbirary = -1,
 }
 
 export interface NotificationRow {
@@ -68,6 +69,9 @@ const buildNotificationContent = (
         } has returned!`,
         `Loot:\n\n${formatInventory(rewardItems)}`,
       ];
+    }
+    case NotificationType.Arbirary: {
+      return `<@${notification.userId}>: ${notification.notificationPayload}`;
     }
     default: {
       throw new Error(`Unhandled notification type: "${notification.notificationType}"`);
@@ -128,6 +132,11 @@ export const setReminder = async (
   notification: NotificationRow,
   now: Date
 ): Promise<void> => {
+  if (notification.reminderTime.getTime() < now.getTime()) {
+    await sendNotification(client, notification);
+    return;
+  }
+
   await insert(
     conn,
     `INSERT INTO \`${TableNames.Notifications}\` (userId, notificationType, guildId, channelId, notificationPayload, reminderTime) VALUES (?, ?, ?, ?, ?, ?);`,

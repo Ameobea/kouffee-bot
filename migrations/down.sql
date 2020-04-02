@@ -17,3 +17,5 @@ DROP TABLE ships_inventory-transactions;
 DROP TABLE custom_commands;
 
 DROP TABLE liked_tweets;
+
+DROP TABLE movies;

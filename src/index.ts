@@ -15,6 +15,7 @@ import {
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
 import { createReminder } from './modules/remind';
+import { pickMovie, addMovie, deleteMovie } from './modules/movie';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -80,6 +81,14 @@ const getResponse = async (
     return getRandomLikedTweetURL(pool);
   } else if (lowerMsg.startsWith(cmd('remind'))) {
     return createReminder(client, pool, msg);
+  } else if (lowerMsg.startsWith(cmd('movie'))) {
+    return pickMovie(pool);
+  } else if (lowerMsg.startsWith(cmd('addmovie'))) {
+    await addMovie(pool, rest.join(' '));
+    return 'Movie added';
+  } else if (lowerMsg.startsWith(cmd('deletemovie')) || lowerMsg.startsWith(cmd('removie'))) {
+    await deleteMovie(pool, rest.join(' '));
+    return 'Movie deleted';
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

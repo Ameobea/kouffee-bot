@@ -237,10 +237,10 @@ const mkNameToKey = <T extends { [key: string]: string }>(map: T, isNumericKey =
   }
 
   const processedName = name.trim().toLowerCase();
-  return Option.of(
+  return Option.of<[string, string]>(
     Object.entries(map).find(([, name]) => name.toLowerCase().startsWith(processedName))
   )
-    .map(R.head)
+    .map(([k]) => k)
     .map(k => (isNumericKey ? +k : k))
     .orNull();
 };
@@ -329,7 +329,7 @@ ${CONF.ships.resource_names['tier3']} Level ${liveProduction.tier3} -> ${livePro
 const addByKey = <T>(a: T, b: T): T =>
   Object.fromEntries(
     Object.entries(a).map(([key, val]) => [key, val + Option.of(b[key as keyof T]).getOrElse(0)])
-  );
+  ) as any; // idc
 
 const printCurUpgradeCosts = async (pool: mysql.Pool, userId: string): Promise<string> => {
   const conn = await getConn(pool);

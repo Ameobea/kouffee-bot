@@ -141,3 +141,7 @@ ALTER TABLE `custom_commands` ADD INDEX(`command`);
 CREATE TABLE `liked_tweets` (
   `tweet_id` BIGINT NOT NULL
 ) ENGINE = InnoDB;
+
+CREATE TABLE `movies` (
+  `name` TEXT NOT NULL
+) ENGINE = InnoDB;

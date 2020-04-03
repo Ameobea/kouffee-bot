@@ -37,7 +37,7 @@ export interface NotificationRow {
 const buildNotificationContent = (
   notification: NotificationRow
 ): Eris.MessageContent | Eris.MessageContent[] => {
-  switch (notification.notificationType) {
+  switch (+notification.notificationType) {
     case NotificationType.ProductionUpgrade: {
       const [productionType, level]: [
         keyof Production,

@@ -145,3 +145,4 @@ CREATE TABLE `liked_tweets` (
 CREATE TABLE `movies` (
   `name` TEXT NOT NULL
 ) ENGINE = InnoDB;
+ALTER TABLE `movies` ADD `watched` TINYINT NOT NULL DEFAULT '0' AFTER `name`;

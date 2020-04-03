@@ -4,7 +4,7 @@
 
 import mysql from 'mysql';
 
-import { query, insert, _delete } from 'src/dbUtil';
+import { query, insert, _delete, update } from 'src/dbUtil';
 
 export const pickMovie = async (conn: mysql.Pool | mysql.PoolConnection) =>
   (
@@ -16,3 +16,17 @@ export const addMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: st
 
 export const deleteMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
   _delete(conn, `DELETE FROM \`movies\` WHERE name = ?;`, [name]);
+
+export const setMovieWatched = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  name: string,
+  isWatched: boolean
+) =>
+  update(conn, `UPDATE \`movies\` SET watched = ? WHERE name = ?`, [isWatched ? 1 : 0, name]).then(
+    res => res.changedRows > 0
+  );
+
+export const listMovies = async (conn: mysql.Pool | mysql.PoolConnection) =>
+  query<{ name: string; watched: number }>(conn, `SELECT * FROM \`movies\` WHERE 1;`).then(movies =>
+    movies.map(({ name, watched }) => (watched ? `~~${name}~~` : name)).join('\n')
+  );

@@ -15,7 +15,7 @@ import {
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
 import { createReminder } from './modules/remind';
-import { pickMovie, addMovie, deleteMovie } from './modules/movie';
+import { pickMovie, addMovie, deleteMovie, listMovies, setMovieWatched } from './modules/movie';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -81,6 +81,8 @@ const getResponse = async (
     return getRandomLikedTweetURL(pool);
   } else if (lowerMsg.startsWith(cmd('remind'))) {
     return createReminder(client, pool, msg);
+  } else if (lowerMsg.startsWith(cmd('listmovies')) || lowerMsg.startsWith(cmd('movies'))) {
+    return listMovies(pool);
   } else if (lowerMsg.startsWith(cmd('movie'))) {
     return pickMovie(pool);
   } else if (lowerMsg.startsWith(cmd('addmovie'))) {
@@ -89,6 +91,12 @@ const getResponse = async (
   } else if (lowerMsg.startsWith(cmd('deletemovie')) || lowerMsg.startsWith(cmd('removie'))) {
     await deleteMovie(pool, rest.join(' '));
     return 'Movie deleted';
+  } else if (lowerMsg.startsWith(cmd('watchmovie'))) {
+    const success = await setMovieWatched(pool, rest.join(' '), true);
+    return success ? 'Successfully marked move as watched' : 'Movie not found!';
+  } else if (lowerMsg.startsWith(cmd('unwatchmovie'))) {
+    const success = await setMovieWatched(pool, rest.join(' '), false);
+    return success ? 'Successfully marked move as watched' : 'Movie not found!';
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

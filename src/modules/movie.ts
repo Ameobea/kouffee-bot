@@ -8,7 +8,7 @@ import { query, insert, _delete, update } from 'src/dbUtil';
 
 export const pickMovie = async (conn: mysql.Pool | mysql.PoolConnection) =>
   (
-    await query<{ name: string }>(conn, `SELECT * FROM \`movies\` WHERE 1 ORDER BY RAND() LIMIT 1;`)
+    await query<{ name: string }>(conn, `SELECT * FROM \`movies\` WHERE watched = 0 ORDER BY RAND() LIMIT 1;`)
   ).map(({ name }) => `WATCH: ${name}`)[0];
 
 export const addMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>

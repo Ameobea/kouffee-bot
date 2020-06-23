@@ -14,6 +14,10 @@ export const pickMovie = async (conn: mysql.Pool | mysql.PoolConnection) =>
 export const addMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
   insert(conn, `INSERT INTO \`movies\` (name) VALUES (?);`, [name]);
 
+export const hasMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
+  (await query<{ name: string }>(conn, `SELECT * from \`movies\` where name = ? LIMIT 1;`, [name])).length > 0;
+
+
 export const deleteMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
   _delete(conn, `DELETE FROM \`movies\` WHERE name = ?;`, [name]);
 

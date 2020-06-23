@@ -86,8 +86,13 @@ const getResponse = async (
   } else if (lowerMsg.startsWith(cmd('movie'))) {
     return pickMovie(pool);
   } else if (lowerMsg.startsWith(cmd('addmovie'))) {
-    await addMovie(pool, rest.join(' '));
-    return 'Movie added';
+    const newMovie = rest.join(' ');
+    if(await hasMovie(pool, newMovie)) {
+      return `Movie (${newMovie}) already exists`;
+    } else {
+      await addMovie(pool, newMovie);
+      return `Movie added (${newMovie})`;
+    }
   } else if (lowerMsg.startsWith(cmd('deletemovie')) || lowerMsg.startsWith(cmd('removie'))) {
     await deleteMovie(pool, rest.join(' '));
     return 'Movie deleted';

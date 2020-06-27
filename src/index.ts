@@ -15,7 +15,14 @@ import {
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
 import { createReminder } from './modules/remind';
-import { pickMovie, addMovie, deleteMovie, listMovies, setMovieWatched } from './modules/movie';
+import {
+  pickMovie,
+  addMovie,
+  deleteMovie,
+  listMovies,
+  setMovieWatched,
+  hasMovie,
+} from './modules/movie';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -87,7 +94,7 @@ const getResponse = async (
     return pickMovie(pool);
   } else if (lowerMsg.startsWith(cmd('addmovie'))) {
     const newMovie = rest.join(' ');
-    if(await hasMovie(pool, newMovie)) {
+    if (await hasMovie(pool, newMovie)) {
       return `Movie (${newMovie}) already exists`;
     } else {
       await addMovie(pool, newMovie);
@@ -102,6 +109,11 @@ const getResponse = async (
   } else if (lowerMsg.startsWith(cmd('unwatchmovie'))) {
     const success = await setMovieWatched(pool, rest.join(' '), false);
     return success ? 'Successfully marked move as watched' : 'Movie not found!';
+  } else if (lowerMsg.startsWith(cmd('ask'))) {
+    return {
+      type: 'embed',
+      embed: { image: { url: 'https://cdn.discordapp.com/emojis/631597540940185600.png?v=1' } },
+    };
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

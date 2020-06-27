@@ -8,15 +8,18 @@ import { query, insert, _delete, update } from 'src/dbUtil';
 
 export const pickMovie = async (conn: mysql.Pool | mysql.PoolConnection) =>
   (
-    await query<{ name: string }>(conn, `SELECT * FROM \`movies\` WHERE watched = 0 ORDER BY RAND() LIMIT 1;`)
+    await query<{ name: string }>(
+      conn,
+      `SELECT * FROM \`movies\` WHERE watched = 0 ORDER BY RAND() LIMIT 1;`
+    )
   ).map(({ name }) => `WATCH: ${name}`)[0];
 
 export const addMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
   insert(conn, `INSERT INTO \`movies\` (name) VALUES (?);`, [name]);
 
 export const hasMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
-  (await query<{ name: string }>(conn, `SELECT * from \`movies\` where name = ? LIMIT 1;`, [name])).length > 0;
-
+  (await query<{ name: string }>(conn, `SELECT * from \`movies\` where name = ? LIMIT 1;`, [name]))
+    .length > 0;
 
 export const deleteMovie = async (conn: mysql.Pool | mysql.PoolConnection, name: string) =>
   _delete(conn, `DELETE FROM \`movies\` WHERE name = ?;`, [name]);

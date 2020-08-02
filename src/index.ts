@@ -114,6 +114,15 @@ const getResponse = async (
       type: 'embed',
       embed: { image: { url: 'https://cdn.discordapp.com/emojis/631597540940185600.png?v=1' } },
     };
+  } else if (lowerMsg.startsWith(cmd('flip'))) {
+    const flip = Math.random();
+    if (flip < 0.5) {
+      return 'Heads';
+    } else if (flip > 0.5) {
+      return 'Tails';
+    } else {
+      return 'The coin landed on its side';
+    }
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

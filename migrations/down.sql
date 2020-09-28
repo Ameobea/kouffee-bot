@@ -19,3 +19,5 @@ DROP TABLE custom_commands;
 DROP TABLE liked_tweets;
 
 DROP TABLE movies;
+
+DROP TABLE anime_girls;

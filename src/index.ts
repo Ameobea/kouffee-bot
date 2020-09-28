@@ -14,6 +14,7 @@ import {
   removeCustomCommand,
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
+import { getRandomAnimeGirlURL } from './modules/anime-girl';
 import { createReminder } from './modules/remind';
 import {
   pickMovie,
@@ -123,6 +124,8 @@ const getResponse = async (
     } else {
       return 'The coin landed on its side';
     }
+  } else if (lowerMsg.startsWith(cmd('agirl'))) {
+    return await getRandomAnimeGirlURL(pool);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

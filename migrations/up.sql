@@ -146,3 +146,5 @@ CREATE TABLE `movies` (
   `name` TEXT NOT NULL
 ) ENGINE = InnoDB;
 ALTER TABLE `movies` ADD `watched` TINYINT NOT NULL DEFAULT '0' AFTER `name`;
+
+CREATE TABLE anime_girls ( `url` VARCHAR(511) NOT NULL , PRIMARY KEY (`url`)) ENGINE = InnoDB;

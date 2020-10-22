@@ -7,4 +7,3 @@ export const timeout = async (timeoutMs: number) =>
   new Promise(resolve => setTimeout(resolve, timeoutMs));
 
 export const getBaseDir = () => path.join(__dirname, '../..');
-console.log(getBaseDir());

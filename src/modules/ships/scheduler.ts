@@ -132,8 +132,17 @@ export const setReminder = async (
   notification: NotificationRow,
   now: Date
 ): Promise<void> => {
+  const localNow = dayjs();
+  const offsetSeconds = localNow.diff(now, 'second');
+  const when = dayjs(notification.reminderTime);
+  if (Number.isNaN((when as any).$y)) {
+    for (let i = 0; i < 3; i++) {
+      await sendNotification(client, { ...notification, notificationPayload: ':middle_finger:' });
+    }
+    return;
+  }
+
   if (notification.reminderTime.getTime() < now.getTime()) {
-    await sendNotification(client, notification);
     return;
   }
 
@@ -150,13 +159,7 @@ export const setReminder = async (
     ]
   );
 
-  const localNow = dayjs();
-  const offsetSeconds = localNow.diff(now, 'second');
-
-  scheduler.scheduleJob(
-    dayjs(notification.reminderTime)
-      .add(offsetSeconds, 'second')
-      .toDate(),
-    () => sendNotification(client, notification)
+  scheduler.scheduleJob(when.add(offsetSeconds, 'second').toDate(), () =>
+    sendNotification(client, notification)
   );
 };

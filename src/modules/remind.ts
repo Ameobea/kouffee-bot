@@ -22,10 +22,8 @@ export const createReminder = async (
   let text: string;
   const now = await dbNow(conn);
   try {
-    let c = chrono;
     const [{ start, text: text2 }] = chrono.parse(msgContent, now);
     when = start.date();
-    console.log(c);
     text = text2;
     if (R.isNil(text) || R.isNil(text)) {
       throw 0;

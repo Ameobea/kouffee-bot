@@ -688,7 +688,6 @@ const printStatus = async ({
     jobIsAfterNow
   );
   const fleetJobsEndingAfterNow = fleetJobsEndingAfterCheckpointTime.filter(jobIsAfterNow);
-  console.log({ imageURL });
 
   return {
     type: 'embed',

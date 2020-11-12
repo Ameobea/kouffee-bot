@@ -144,7 +144,7 @@ const getResponse = async (
   }
 
   // Check to see if it was a custom command and return the custom response if it is
-  return getCustomCommandResponse(pool, lowerMsgContent);
+  return getCustomCommandResponse(pool, lowerMsgContent, msg.author.id);
 };
 
 const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {

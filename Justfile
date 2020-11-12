@@ -1,5 +1,5 @@
 run:
-  yarn start
+  yarn build && yarn start
 
 code:
   code .

@@ -17,6 +17,7 @@ import { BuildableShip } from './fleet';
 import { getRaidTimeDurString, formatInventory } from './formatters';
 import { deserializeRaidResult } from './raids';
 import { RaidResult } from './raids/types';
+import { deJoqify } from 'src/util';
 
 export enum NotificationType {
   ProductionUpgrade = 0,
@@ -71,7 +72,7 @@ const buildNotificationContent = (
       ];
     }
     case NotificationType.Arbirary: {
-      return `<@${notification.userId}>: ${notification.notificationPayload}`;
+      return `<@${notification.userId}>: ${deJoqify(notification.notificationPayload)}`;
     }
     default: {
       throw new Error(`Unhandled notification type: "${notification.notificationType}"`);

@@ -4,6 +4,7 @@ import Eris from 'eris';
 
 import { insert, query, _delete } from 'src/dbUtil';
 import { CONF } from 'src/conf';
+import { deJoqify } from 'src/util';
 
 /**
  * Adds the functionality of adding/removing simple custom commands that display text in response to a keyword
@@ -45,7 +46,8 @@ export const removeCustomCommand = async (pool: mysql.Pool, command: string, use
 
 export const getCustomCommandResponse = async (
   pool: mysql.Pool,
-  command: string
+  command: string,
+  requestingUserID: string | number
 ): Promise<string | undefined> => {
   const row = (
     await query<{ response: string }>(
@@ -58,5 +60,5 @@ export const getCustomCommandResponse = async (
     return;
   }
 
-  return row.response;
+  return deJoqify(row.response, requestingUserID);
 };

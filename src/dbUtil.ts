@@ -10,6 +10,7 @@ export const createConnPool = (conf: Conf) =>
     user: conf.database.username,
     password: conf.database.password,
     database: conf.database.database,
+    charset: 'utf8mb4',
     bigNumberStrings: true,
     supportBigNumbers: true,
   });

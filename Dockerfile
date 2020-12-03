@@ -1,9 +1,8 @@
-FROM node:13.7.0-alpine3.11
+FROM node:15.3.0-stretch-slim
 
 ADD . /app
 WORKDIR /app
 
-RUN yarn
-RUN yarn build
+RUN apt update && apt install -y python3 build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev && yarn && yarn build
 
 CMD yarn start

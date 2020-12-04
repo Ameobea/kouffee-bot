@@ -59,6 +59,7 @@ const getResponse = async (
   }
 
   const lowerMsgContent = lowerMsg.split(CONF.general.command_symbol)[1]!;
+  const msgArgContent = msgContent.trim().split(CONF.general.command_symbol)[1];
 
   const [first, ...rest] = lowerMsg.split(/\s+/g);
   if (lowerMsgContent.startsWith('kouffee')) {
@@ -76,7 +77,7 @@ const getResponse = async (
   } else if (lowerMsg.startsWith(cmd('hazbin'))) {
     return getRandomAmeoLink(Number.parseInt('74w', 36), Number.parseInt('7hh', 36));
   } else if (lowerMsg.startsWith(cmd('addcommand'))) {
-    const [first, command] = lowerMsg.split(' ');
+    const [first, command] = msgArgContent.split(' ');
     return addCustomCommand(
       pool,
       rest[0],
@@ -144,7 +145,7 @@ const getResponse = async (
   }
 
   // Check to see if it was a custom command and return the custom response if it is
-  return getCustomCommandResponse(pool, lowerMsgContent, msg.author.id);
+  return getCustomCommandResponse(pool, msgArgContent, msg.author.id);
 };
 
 const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {

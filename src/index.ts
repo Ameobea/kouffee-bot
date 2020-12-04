@@ -81,7 +81,7 @@ const getResponse = async (
     return addCustomCommand(
       pool,
       rest[0],
-      lowerMsg.replace(first + ' ', '').replace(command + ' ', ''),
+      msgArgContent.replace(first + ' ', '').replace(command + ' ', ''),
       msg.author.id
     );
   } else if (lowerMsg.startsWith(cmd('removecommand'))) {

@@ -12,6 +12,7 @@ import {
   getCustomCommandResponse,
   addCustomCommand,
   removeCustomCommand,
+  getRandomCustomCommand,
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
 import { getRandomAnimeGirlURL } from './modules/anime-girl';
@@ -58,8 +59,15 @@ const getResponse = async (
     return;
   }
 
-  const lowerMsgContent = lowerMsg.split(CONF.general.command_symbol)[1]!;
-  const msgArgContent = msgContent.trim().split(CONF.general.command_symbol)[1];
+  const lowerMsgContent = lowerMsg
+    .split(CONF.general.command_symbol)
+    .slice(1)
+    .join(CONF.general.command_symbol);
+  const msgArgContent = msgContent
+    .trim()
+    .split(CONF.general.command_symbol)
+    .slice(1)
+    .join(CONF.general.command_symbol);
 
   const [first, ...rest] = lowerMsg.split(/\s+/g);
   if (lowerMsgContent.startsWith('kouffee')) {
@@ -127,6 +135,8 @@ const getResponse = async (
     }
   } else if (lowerMsg.startsWith(cmd('agirl'))) {
     return await getRandomAnimeGirlURL(pool);
+  } else if (lowerMsg.startsWith(cmd('random'))) {
+    return await getRandomCustomCommand(pool);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

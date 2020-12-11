@@ -9,7 +9,9 @@
       "preLaunchTask": "tsc: build - tsconfig.json",
       "outFiles": ["${workspaceFolder}/dist/src/**/*.js"],
       "env": {
-        "NODE_PATH": "${workspaceFolder}/dist"
+        "NODE_PATH": "${workspaceFolder}/dist",
+        "DISCORD_TOKEN": "NjYzNjA0NzM2NDg1NzUyODMy.XhK8cA.TQuDgIOQoogFlFqBEqLJVnAOaV4",
+        "GOOGLE_APPLICATION_CREDENTIALS": "./service-account.json"
       }
     }
   ]

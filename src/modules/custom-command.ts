@@ -62,3 +62,13 @@ export const getCustomCommandResponse = async (
 
   return deJoqify(row.response, requestingUserID);
 };
+
+export const getRandomCustomCommand = async (pool: mysql.Pool): Promise<string> => {
+  const row = (
+    await query<{ response: string }>(
+      pool,
+      'SELECT `response` FROM custom_commands ORDER BY RAND() LIMIT 1;'
+    )
+  )[0];
+  return row.response;
+};

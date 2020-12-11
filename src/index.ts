@@ -25,6 +25,7 @@ import {
   setMovieWatched,
   hasMovie,
 } from './modules/movie';
+import { archivePost, getRandomArchivedPost } from './modules/archive';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -33,6 +34,8 @@ if (!token) {
 }
 
 const client = Eris(token);
+
+const OUR_USER_ID = '663604736485752832';
 
 export const cmd = (name: string): string => `${CONF.general.command_symbol}${name}`;
 
@@ -49,7 +52,7 @@ const getResponse = async (
   | { type: 'file'; file: Buffer; name: string }
 > => {
   // Ignore our own messages
-  if (msg.author.id === '663604736485752832') {
+  if (msg.author.id === OUR_USER_ID) {
     return;
   }
 
@@ -137,6 +140,8 @@ const getResponse = async (
     return await getRandomAnimeGirlURL(pool);
   } else if (lowerMsg.startsWith(cmd('random'))) {
     return await getRandomCustomCommand(pool);
+  } else if (lowerMsg.startsWith(cmd('post'))) {
+    return await getRandomArchivedPost(pool);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {
@@ -195,6 +200,29 @@ const initMsgHandler = (pool: mysql.Pool) => {
   });
 };
 
+const ARCHIVE_REACTION_NAME = 'kouffee';
+const ARCHIVE_REACTION_ID = '787084142356463659';
+const initReactionHandler = async (pool: mysql.Pool) => {
+  client.on(
+    'messageReactionAdd',
+    async ({ id: msgID, channel: { id: channelID } }, emoji, userID) => {
+      if (userID === OUR_USER_ID) {
+        return;
+      }
+
+      if (emoji.id === ARCHIVE_REACTION_ID) {
+        const msg = await client.getMessage(channelID, msgID);
+        if (!msg?.cleanContent) {
+          return;
+        }
+
+        await archivePost(msg.cleanContent!, userID, pool);
+        await msg.addReaction(`${ARCHIVE_REACTION_NAME}:${ARCHIVE_REACTION_ID}`);
+      }
+    }
+  );
+};
+
 client.on('connect', () => console.log('Bot connected!'));
 
 client.on('error', err => console.error(err));
@@ -216,6 +244,7 @@ const init = async () => {
   console.log('Loading item data item database file');
 
   initMsgHandler(pool);
+  initReactionHandler(pool);
 
   client.connect();
 };

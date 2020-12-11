@@ -148,3 +148,9 @@ CREATE TABLE `movies` (
 ALTER TABLE `movies` ADD `watched` TINYINT NOT NULL DEFAULT '0' AFTER `name`;
 
 CREATE TABLE anime_girls ( `url` VARCHAR(511) NOT NULL , PRIMARY KEY (`url`)) ENGINE = InnoDB;
+
+CREATE TABLE archived_posts (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `content` TEXT NOT NULL,
+  `user_id` VARCHAR(62) NOT NULL
+);

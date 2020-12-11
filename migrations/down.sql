@@ -21,3 +21,5 @@ DROP TABLE liked_tweets;
 DROP TABLE movies;
 
 DROP TABLE anime_girls;
+
+DROP TABLE archived_posts;

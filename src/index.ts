@@ -26,6 +26,7 @@ import {
   hasMovie,
 } from './modules/movie';
 import { archivePost, getRandomArchivedPost } from './modules/archive';
+import { getRandomOSRSLink } from './modules/random-osrs';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -138,6 +139,8 @@ const getResponse = async (
     }
   } else if (lowerMsg.startsWith(cmd('agirl'))) {
     return await getRandomAnimeGirlURL(pool);
+  } else if (lowerMsg.startsWith(cmd('randomrs'))) {
+    return getRandomOSRSLink();
   } else if (lowerMsg.startsWith(cmd('random'))) {
     return await getRandomCustomCommand(pool);
   } else if (lowerMsg.startsWith(cmd('post'))) {

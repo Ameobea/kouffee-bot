@@ -29,7 +29,7 @@
     "dayjs": "^1.8.20",
     "eris": "^0.11.2",
     "funfix-core": "^7.0.1",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "mysql": "^2.18.1",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.1",

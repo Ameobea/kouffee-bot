@@ -154,3 +154,22 @@ CREATE TABLE archived_posts (
   `content` TEXT NOT NULL,
   `user_id` VARCHAR(62) NOT NULL
 );
+CREATE UNIQUE INDEX unique_per_user
+ON archived_posts(content,user_id);
+
+CREATE TABLE all_media_posts (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `content` TEXT NOT NULL,
+  `user_id` VARCHAR(62) NOT NULL
+);
+CREATE UNIQUE INDEX unique_per_user
+ON all_media_posts(content,user_id);
+
+ALTER TABLE archived_posts ADD COLUMN channel_name TEXT NOT NULL DEFAULT 'unknown';
+ALTER TABLE all_media_posts ADD COLUMN channel_name TEXT NOT NULL DEFAULT 'unknown';
+
+ALTER TABLE archived_posts ADD COLUMN user_name TEXT NOT NULL DEFAULT 'unknown';
+ALTER TABLE all_media_posts ADD COLUMN user_name TEXT NOT NULL DEFAULT 'unknown';
+
+ALTER TABLE archived_posts ADD COLUMN stored_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP();
+ALTER TABLE all_media_posts ADD COLUMN stored_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP();

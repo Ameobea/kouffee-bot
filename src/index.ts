@@ -1,5 +1,6 @@
 import Eris, { EmbedOptions } from 'eris';
 import mysql from 'mysql';
+import * as R from 'ramda';
 
 import { loadConf, CONF } from './conf';
 import { createConnPool } from './dbUtil';
@@ -58,6 +59,16 @@ const getResponse = async (
   }
 
   const lowerMsg = msgContent.trim().toLowerCase();
+  if (lowerMsg.includes('http://') || lowerMsg.includes('https://') || msg.attachments.length > 0) {
+    archivePost(
+      [msg.cleanContent || '', ...msg.attachments.map(R.prop('url'))].join('\n'),
+      msg.author.id,
+      msg.author.username,
+      pool,
+      msg.channel.type === 0 ? msg.channel.name : 'unknown',
+      false
+    );
+  }
 
   if (!lowerMsg.startsWith(CONF.general.command_symbol)) {
     return;
@@ -143,8 +154,14 @@ const getResponse = async (
     return getRandomOSRSLink();
   } else if (lowerMsg.startsWith(cmd('random'))) {
     return await getRandomCustomCommand(pool);
-  } else if (lowerMsg.startsWith(cmd('post'))) {
-    return await getRandomArchivedPost(pool);
+  } else if (lowerMsg.startsWith(cmd('goodpost'))) {
+    return await getRandomArchivedPost(pool, true);
+  } else if (
+    lowerMsg.startsWith(cmd('badpost')) ||
+    lowerMsg.startsWith(cmd('post')) ||
+    lowerMsg.startsWith(cmd('shitpost'))
+  ) {
+    return await getRandomArchivedPost(pool, false);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {
@@ -182,11 +199,7 @@ const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
 
 const initMsgHandler = (pool: mysql.Pool) => {
   client.on('messageCreate', async msg => {
-    if (!msg.cleanContent) {
-      return;
-    }
-
-    const res = await getResponse(pool, msg.cleanContent, msg);
+    const res = await getResponse(pool, msg.cleanContent || '', msg);
     if (!res) {
       return;
     }
@@ -204,7 +217,7 @@ const initMsgHandler = (pool: mysql.Pool) => {
 };
 
 const ARCHIVE_REACTION_NAME = 'kouffee';
-const ARCHIVE_REACTION_ID = '787084142356463659';
+const ARCHIVE_REACTION_ID = '788608570874265610';
 const initReactionHandler = async (pool: mysql.Pool) => {
   client.on(
     'messageReactionAdd',
@@ -219,7 +232,14 @@ const initReactionHandler = async (pool: mysql.Pool) => {
           return;
         }
 
-        await archivePost(msg.cleanContent!, userID, pool);
+        await archivePost(
+          msg.cleanContent!,
+          userID,
+          msg.author.username,
+          pool,
+          msg.channel.type === 0 ? msg.channel.name : 'unknown',
+          true
+        );
         await msg.addReaction(`${ARCHIVE_REACTION_NAME}:${ARCHIVE_REACTION_ID}`);
       }
     }

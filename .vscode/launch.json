@@ -10,7 +10,7 @@
       "outFiles": ["${workspaceFolder}/dist/src/**/*.js"],
       "env": {
         "NODE_PATH": "${workspaceFolder}/dist",
-        "DISCORD_TOKEN": "NjYzNjA0NzM2NDg1NzUyODMy.XhK8Eg.VV-yaifx4slKfBivw_mWXT09Qk0",
+        "DISCORD_TOKEN": ":middle_finger:",
         "GOOGLE_APPLICATION_CREDENTIALS": "./service-account.json"
       }
     }

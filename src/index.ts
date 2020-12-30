@@ -161,6 +161,10 @@ const getResponse = async (
     lowerMsg.startsWith(cmd('post')) ||
     lowerMsg.startsWith(cmd('shitpost'))
   ) {
+    // Disable in meme team
+    if (msg.channel.type === 0 && msg.channel.guild.id === '161336072884715521') {
+      return 'The admins have voted to disable this command in this server.  You can use #kouffee-shop in Kitty Facts';
+    }
     return await getRandomArchivedPost(pool, false);
   }
 
@@ -185,15 +189,19 @@ const getResponse = async (
 
 const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
   let i = 0;
-  function timedLoop() {
-    setTimeout(function() {
-      client.createMessage(msg.channel.id, messages[i]);
+  const timedLoop = () => {
+    setTimeout(async () => {
+      try {
+        client.createMessage(msg.channel.id, messages[i]);
+      } catch (err) {
+        console.error('Error creating message: ', err);
+      }
       i++;
       if (i < messages.length) {
         timedLoop();
       }
     }, 800);
-  }
+  };
   timedLoop();
 };
 
@@ -204,14 +212,19 @@ const initMsgHandler = (pool: mysql.Pool) => {
       return;
     }
 
-    if (Array.isArray(res)) {
-      sendMultipleMessages(msg, res);
-    } else {
-      if (typeof res === 'string' || res.type === 'embed') {
-        client.createMessage(msg.channel.id, res);
-      } else {
-        client.createMessage(msg.channel.id, {}, res);
+    try {
+      if (Array.isArray(res)) {
+        sendMultipleMessages(msg, res);
+        return;
       }
+
+      if (typeof res === 'string' || res.type === 'embed') {
+        await client.createMessage(msg.channel.id, res);
+      } else {
+        await client.createMessage(msg.channel.id, {}, res);
+      }
+    } catch (err) {
+      console.error('Error creating message: ', err);
     }
   });
 };

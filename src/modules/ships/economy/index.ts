@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import { filterNils } from 'ameo-utils/dist/util';
+import { filterNils } from 'ameo-utils/util';
 
 import { ProductionIncomeGetters } from './curves/production';
 

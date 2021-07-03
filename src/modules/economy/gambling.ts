@@ -212,19 +212,19 @@ export const roulette = async (
   else if (blackWin.includes(String(roll))) color = 0x000000;
   else color = 0x00ff00;
 
-  let embedObject: { type: 'embed'; embed: EmbedOptions } = {
+  const embedObject: { type: 'embed'; embed: EmbedOptions } = {
     type: 'embed' as const,
     embed: {
-      title: winEmoji + `  You rolled ` + (roll === 37 ? '00' : roll) + `  ` + winEmoji,
+      title: winEmoji + '  You rolled ' + (roll === 37 ? '00' : roll) + '  ' + winEmoji,
       //description: balance + " --> " + endBalance,
       color,
       fields: [
         {
-          name: `Old Balance`,
+          name: 'Old Balance',
           value: balance + ` ${CONF.economy.currency_name}`,
         },
         {
-          name: `New Balance`,
+          name: 'New Balance',
           value: endBalance + ` ${CONF.economy.currency_name}`,
         },
       ],
@@ -241,7 +241,7 @@ export const roulette = async (
       await updateAmount(conn, user.id, netChange);
       await commit(conn);
 
-      pool.releaseConnection(conn);
+      conn.release();
 
       resolve(embedObject);
     });

@@ -22,3 +22,5 @@ export const replaceAll = (haystack: string, from: string, to: string) => {
 
 export const deJoqify = (content: string, senderUserId?: string | number) =>
   replaceAll(content, '<@!165985005200211969>', senderUserId ? `<@!${senderUserId}>` : ' ');
+
+export const btoa = (s: string) => Buffer.from(s).toString('base64');

@@ -74,7 +74,7 @@ export const claimDaily = async (pool: mysql.Pool, user: eris.User): Promise<str
       await addClaim(conn, user.id);
       await commit(conn);
 
-      pool.releaseConnection(conn);
+      conn.release();
       resolve(`Successfully claimed ${CONF.economy.claim_amount} ${CONF.economy.currency_name}.`);
     });
   });

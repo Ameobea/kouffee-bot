@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import { UnimplementedError } from 'ameo-utils/dist/util';
+import { UnimplementedError } from 'ameo-utils';
 
 import { randomInt } from 'src/util';
 import { Item, Tier } from '../inventory/item';

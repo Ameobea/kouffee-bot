@@ -195,7 +195,7 @@ const getLastQueuedProductionJob = (
     conn,
     `SELECT * FROM \`${TableNames.ProductionJobs}\` WHERE userId = ? ORDER BY endTime DESC LIMIT 1;`,
     [userId]
-  ).then(R.head);
+  ).then(l => l[0]);
 
 const insertProductionJob = (
   conn: mysql.PoolConnection,

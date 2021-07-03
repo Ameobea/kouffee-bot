@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import { ValueOf } from 'ameo-utils/dist/types';
+import { ValueOf } from 'ameo-utils/types';
 
 import { RaidLocation, RaidResult, RaidDurationTier } from './types';
 import { Item } from 'src/modules/ships/inventory/item';

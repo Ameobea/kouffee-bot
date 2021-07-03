@@ -28,6 +28,7 @@ import {
 } from './modules/movie';
 import { archivePost, getRandomArchivedPost } from './modules/archive';
 import { getRandomOSRSLink } from './modules/random-osrs';
+import { getSankakuComplexImageDriver } from './modules/sankaku-complex';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -41,18 +42,19 @@ const OUR_USER_ID = '663604736485752832';
 
 export const cmd = (name: string): string => `${CONF.general.command_symbol}${name}`;
 
-const getResponse = async (
-  pool: mysql.Pool,
-  msgContent: string,
-  msg: Eris.Message
-): Promise<
+export type CommandResponse =
   | string
   | undefined
   | null
   | string[]
   | { type: 'embed'; embed: EmbedOptions }
-  | { type: 'file'; file: Buffer; name: string }
-> => {
+  | { type: 'file'; file: Buffer; name: string };
+
+const getResponse = async (
+  pool: mysql.Pool,
+  msgContent: string,
+  msg: Eris.Message
+): Promise<CommandResponse> => {
   // Ignore our own messages
   if (msg.author.id === OUR_USER_ID) {
     return;
@@ -166,6 +168,10 @@ const getResponse = async (
       return 'The admins have voted to disable this command in this server.  You can use #kouffee-shop in Kitty Facts';
     }
     return await getRandomArchivedPost(pool, false);
+  } else if (lowerMsg.startsWith(cmd('sc')) || lowerMsg.startsWith(cmd('sankaku'))) {
+    return await getSankakuComplexImageDriver(msg);
+  } else if (lowerMsg.startsWith(cmd('b'))) {
+    return await getSankakuComplexImageDriver(msg, true);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

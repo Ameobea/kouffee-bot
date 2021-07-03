@@ -875,10 +875,10 @@ ajv@^6.10.0, ajv@^6.10.2, ajv@^6.12.3:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
-ameo-utils@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/ameo-utils/-/ameo-utils-0.7.2.tgz#488436f6719e976a2fde40581e2df43affeb68b1"
-  integrity sha512-JvgK70Tnm36yqLmuHsUiFMORXjqhkxoZRkIzeaRq1RVAYdiuJNd/3EQuzywJDeiRXoo/WQaxcItCLLy4RboNng==
+ameo-utils@^0.8:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/ameo-utils/-/ameo-utils-0.8.0.tgz#0e2b1959dcdb5bf87f59f8ae5eb8e9755b1a2617"
+  integrity sha512-4OGrJazx9MroDQ4ZCBD3zkyV370vlKQJcgXhrs5gBlMnddv4g2Hf5Y04m9lBg7/SYHriTB0iwKx2FIPNh50wWQ==
   dependencies:
     react-responsive "^7.0.0"
 
@@ -2524,9 +2524,9 @@ hash-stream-validation@^0.2.2:
   integrity sha512-Gjzu0Xn7IagXVkSu9cSFuK1fqzwtLwFhNhVL8IFJijRNMgUttFbBSIAzKuSIrsFMO1+g1RlsoN49zPIbwPDMGQ==
 
 hosted-git-info@^2.1.4:
-  version "2.8.8"
-  resolved "https://registry.yarnpkg.com/hosted-git-info/-/hosted-git-info-2.8.8.tgz#7539bd4bc1e0e0a895815a2e0262420b12858488"
-  integrity sha512-f/wzC2QaWBs7t9IYqB4T3sR1xviIViXJRJTWBlx2Gf3g0Xi5vI7Yy4koXQ1c9OYDGHN9sBy1DQ2AB8fqZBWhUg==
+  version "2.8.9"
+  resolved "https://registry.yarnpkg.com/hosted-git-info/-/hosted-git-info-2.8.9.tgz#dffc0bf9a21c02209090f2aa69429e1414daf3f9"
+  integrity sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==
 
 html-encoding-sniffer@^1.0.2:
   version "1.0.2"

@@ -5,11 +5,22 @@
 import * as R from 'ramda';
 import fetch from 'node-fetch';
 import Eris from 'eris';
+
 import { CommandResponse } from '..';
 import { btoa } from 'src/util';
 
+interface SearchResultsCacheEntry {
+  images: SearchResultImage[];
+  insertedAt: Date;
+}
+
+/**
+ * Sankaku expires links after some amount of time, so we can't persist them in the cache for a huge amount of time
+ */
+const CACHE_TIMEOUT_MS = 28_000;
+
 // Retrieve multiple results at the same time so people rapid-firing requests for a given tag won't have to hit the API every time.
-const SearchResultsCache: Map<string, SearchResultImage[]> = new Map();
+const SearchResultsCache: Map<string, SearchResultsCacheEntry> = new Map();
 
 const buildSearchResultsCacheKey = (encodedTag: string, nsfw: string) => `${encodedTag}-${nsfw}`;
 
@@ -38,6 +49,8 @@ const fetchTagAutocomplete = (tag: string) =>
     }
     return (await res.json()) as AutoCompleteItem[];
   });
+
+const AutoCompleteCache: Map<string, AutoCompleteItem[]> = new Map();
 
 const buildSearchURL = (encodedTag: string, nsfw: 'yes' | 'no' | 'both') =>
   `https://capi-v2.sankakucomplex.com/posts/keyset?lang=en&default_threshold=1&hide_posts_in_books=in-larger-tags&limit=40&tags=order:random${
@@ -117,31 +130,45 @@ export interface Tag {
   name: string;
 }
 
-const doSearch = (tag: string, nsfw: 'yes' | 'no' | 'both') =>
-  fetch(buildSearchURL(tag, nsfw)).then(async res => {
+const doSearch = (tag: string, nsfw: 'yes' | 'no' | 'both') => {
+  const searchURL = buildSearchURL(tag, nsfw);
+  console.log('Hitting Sankaku search API: ', searchURL);
+  return fetch(searchURL).then(async res => {
     if (!res.ok) {
       throw await res.text();
     }
     return (await res.json()) as SearchResult;
   });
+};
 
 export const getSankakuComplexImage = async (
   tag: string,
   nsfw: 'yes' | 'no' | 'both'
 ): Promise<SearchResultImage | string> => {
   // Hit autocomplete API to get a proper tag name
-  const autoCompletedTag = (await fetchTagAutocomplete(tag))[0];
+  const autoCompletedRes = AutoCompleteCache.get(tag) ?? (await fetchTagAutocomplete(tag));
+  const autoCompletedTag = autoCompletedRes[0];
   if (!autoCompletedTag) {
     console.log('autocomplete failed');
     return `Nothing found for the tag "${tag}"`;
   }
+  AutoCompleteCache.set(tag, autoCompletedRes);
   const autoCompleteTagName = encodeTag(autoCompletedTag.name);
 
   // First check our cache to see if we already have search results
   const cacheKey = buildSearchResultsCacheKey(autoCompleteTagName, nsfw);
   const cachedResults = SearchResultsCache.get(cacheKey);
-  if (cachedResults?.length) {
-    return cachedResults.pop()!;
+  const now = new Date();
+  const cacheEntryExpired =
+    !cachedResults || now.getTime() - cachedResults.insertedAt.getTime() > CACHE_TIMEOUT_MS;
+  if (cachedResults?.images.length && !cacheEntryExpired) {
+    console.log('Using cached entry for tag ', autoCompleteTagName);
+    const item = cachedResults.images.pop()!;
+    if (!item.preview_url) {
+      console.log('Image had no `preview_url`; recursing...');
+      return getSankakuComplexImage(tag, nsfw);
+    }
+    return item;
   }
 
   try {
@@ -154,7 +181,7 @@ export const getSankakuComplexImage = async (
     }
 
     const resToReturn = res.data.pop()!;
-    SearchResultsCache.set(cacheKey, res.data);
+    SearchResultsCache.set(cacheKey, { images: res.data, insertedAt: now });
     return resToReturn;
   } catch (err) {
     return `API error: \`${err}\``;

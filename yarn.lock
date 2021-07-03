@@ -875,10 +875,10 @@ ajv@^6.10.0, ajv@^6.10.2, ajv@^6.12.3:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
-ameo-utils@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/ameo-utils/-/ameo-utils-0.7.2.tgz#488436f6719e976a2fde40581e2df43affeb68b1"
-  integrity sha512-JvgK70Tnm36yqLmuHsUiFMORXjqhkxoZRkIzeaRq1RVAYdiuJNd/3EQuzywJDeiRXoo/WQaxcItCLLy4RboNng==
+ameo-utils@^0.8:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/ameo-utils/-/ameo-utils-0.8.0.tgz#0e2b1959dcdb5bf87f59f8ae5eb8e9755b1a2617"
+  integrity sha512-4OGrJazx9MroDQ4ZCBD3zkyV370vlKQJcgXhrs5gBlMnddv4g2Hf5Y04m9lBg7/SYHriTB0iwKx2FIPNh50wWQ==
   dependencies:
     react-responsive "^7.0.0"
 
@@ -2375,9 +2375,9 @@ getpass@^0.1.1:
     assert-plus "^1.0.0"
 
 glob-parent@^5.0.0:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/glob-parent/-/glob-parent-5.1.1.tgz#b6c1ef417c4e5663ea498f1c45afac6916bbc229"
-  integrity sha512-FnI+VGOpnlGHWZxthPGR+QhR78fuiK0sNLkHQv+bL9fQi57lNNdquIbna/WrfROrolq8GK5Ek6BiMwqL/voRYQ==
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/glob-parent/-/glob-parent-5.1.2.tgz#869832c58034fe68a4093c17dc15e8340d8401c4"
+  integrity sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==
   dependencies:
     is-glob "^4.0.1"
 

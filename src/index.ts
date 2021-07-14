@@ -17,7 +17,12 @@ import {
 } from './modules/custom-command';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
 import { getRandomAnimeGirlURL } from './modules/anime-girl';
-import { createReminder } from './modules/remind';
+import {
+  createPeriodicReminder,
+  createReminder,
+  deletePeriodicReminder,
+  listPeriodicReminders,
+} from './modules/remind';
 import {
   pickMovie,
   addMovie,
@@ -29,6 +34,7 @@ import {
 import { archivePost, getRandomArchivedPost } from './modules/archive';
 import { getRandomOSRSLink } from './modules/random-osrs';
 import { getSankakuComplexImageDriver } from './modules/sankaku-complex';
+import { getServerDate } from './modules/serverDate';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -172,6 +178,14 @@ const getResponse = async (
     return await getSankakuComplexImageDriver(msg);
   } else if (lowerMsg.startsWith(cmd('b'))) {
     return await getSankakuComplexImageDriver(msg, true);
+  } else if (lowerMsg.startsWith(cmd('alarm'))) {
+    return await createPeriodicReminder(client, pool, msg);
+  } else if (lowerMsg.startsWith(cmd('listalarms'))) {
+    return await listPeriodicReminders(pool, msg);
+  } else if (lowerMsg.startsWith(cmd('deletealarm'))) {
+    return await deletePeriodicReminder(pool, msg);
+  } else if (lowerMsg.startsWith(cmd('date'))) {
+    return await getServerDate(pool);
   }
 
   if (first && (first.startsWith(cmd('ship')) || first === cmd('s'))) {

@@ -173,3 +173,12 @@ ALTER TABLE all_media_posts ADD COLUMN user_name TEXT NOT NULL DEFAULT 'unknown'
 
 ALTER TABLE archived_posts ADD COLUMN stored_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP();
 ALTER TABLE all_media_posts ADD COLUMN stored_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP();
+
+CREATE TABLE periodic_reminders (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `userId` BIGINT NOT NULL,
+  `guildId` BIGINT NOT NULL,
+  `channelId` BIGINT NOT NULL,
+  `notificationPayload` TEXT NOT NULL,
+  `reminderTime` TEXT NOT NULL
+) ENGINE = InnoDB;

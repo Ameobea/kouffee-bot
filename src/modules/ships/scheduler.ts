@@ -18,12 +18,14 @@ import { getRaidTimeDurString, formatInventory } from './formatters';
 import { deserializeRaidResult } from './raids';
 import { RaidResult } from './raids/types';
 import { deJoqify } from 'src/util';
+import { getRandomAnimeGirlURL } from '../anime-girl';
 
 export enum NotificationType {
   ProductionUpgrade = 0,
   ShipBuild = 1,
   RaidReturn = 2,
-  Arbirary = -1,
+  Arbitrary = -1,
+  PeriodicReminder = -2,
 }
 
 export interface NotificationRow {
@@ -35,9 +37,19 @@ export interface NotificationRow {
   reminderTime: Date;
 }
 
-const buildNotificationContent = (
-  notification: NotificationRow
-): Eris.MessageContent | Eris.MessageContent[] => {
+export interface PeriodicReminderRow {
+  id: number;
+  userId: string;
+  guildId: string;
+  channelId: string;
+  notificationPayload: string;
+  reminderTime: string;
+}
+
+const buildNotificationContent = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  notification: Omit<NotificationRow, 'reminderTime'>
+): Promise<Eris.MessageContent | Eris.MessageContent[]> => {
   switch (+notification.notificationType) {
     case NotificationType.ProductionUpgrade: {
       const [productionType, level]: [
@@ -71,8 +83,14 @@ const buildNotificationContent = (
         `Loot:\n\n${formatInventory(rewardItems)}`,
       ];
     }
-    case NotificationType.Arbirary: {
+    case NotificationType.Arbitrary: {
       return `<@${notification.userId}>: ${deJoqify(notification.notificationPayload)}`;
+    }
+    case NotificationType.PeriodicReminder: {
+      const animeGirlURL = await getRandomAnimeGirlURL(conn);
+      return `<@${notification.userId}>: ${deJoqify(
+        notification.notificationPayload
+      )}\n${animeGirlURL}`;
     }
     default: {
       throw new Error(`Unhandled notification type: "${notification.notificationType}"`);
@@ -80,7 +98,11 @@ const buildNotificationContent = (
   }
 };
 
-const sendNotification = (client: Eris.Client, notification: NotificationRow) => {
+const sendNotification = async (
+  conn: mysql.Pool | mysql.PoolConnection,
+  client: Eris.Client,
+  notification: Omit<NotificationRow, 'reminderTime'>
+) => {
   const guild = client.guilds.get(notification.guildId);
   if (!guild) {
     console.error(
@@ -97,7 +119,7 @@ const sendNotification = (client: Eris.Client, notification: NotificationRow) =>
     return;
   }
 
-  const content = buildNotificationContent(notification);
+  const content = await buildNotificationContent(conn, notification);
   if (Array.isArray(content)) {
     content.forEach(content => client.createMessage(notification.channelId, content));
   } else {
@@ -119,12 +141,27 @@ export const initTimers = async (client: Eris.Client, conn: mysql.Pool) => {
       dayjs(notification.reminderTime)
         .add(offsetSeconds, 'second')
         .toDate(),
-      () => sendNotification(client, notification)
+      () => sendNotification(conn, client, notification)
     )
   );
   if (!R.isEmpty(notificationsToSchedule)) {
     console.log(`Finished scheduling ${notificationsToSchedule.length} notifications`);
   }
+
+  const periodicRemindersToSchedule = await query<PeriodicReminderRow>(
+    conn,
+    'SELECT * FROM `periodic_reminders`',
+    []
+  );
+  periodicRemindersToSchedule.forEach(reminder =>
+    scheduler.scheduleJob(`periodic-reminder-${reminder.id}`, reminder.reminderTime, () =>
+      sendNotification(conn, client, {
+        ...reminder,
+        notificationType: NotificationType.PeriodicReminder,
+      })
+    )
+  );
+  console.log(`Finished scheduling ${periodicRemindersToSchedule.length} periodic reminders`);
 };
 
 export const setReminder = async (
@@ -138,7 +175,10 @@ export const setReminder = async (
   const when = dayjs(notification.reminderTime);
   if (Number.isNaN((when as any).$y)) {
     for (let i = 0; i < 3; i++) {
-      await sendNotification(client, { ...notification, notificationPayload: ':middle_finger:' });
+      await sendNotification(conn, client, {
+        ...notification,
+        notificationPayload: ':middle_finger:',
+      });
     }
     return;
   }
@@ -161,6 +201,37 @@ export const setReminder = async (
   );
 
   scheduler.scheduleJob(when.add(offsetSeconds, 'second').toDate(), () =>
-    sendNotification(client, notification)
+    sendNotification(conn, client, notification)
   );
+};
+
+/**
+ * @returns {Promise<void>} The ID of the newly created period reminder.
+ */
+export const schedulePeriodicReminder = async (
+  client: Eris.Client,
+  conn: mysql.Pool | mysql.PoolConnection,
+  reminder: PeriodicReminderRow
+): Promise<number> => {
+  await insert(
+    conn,
+    'INSERT INTO `periodic_reminders` (userId, guildId, channelId, notificationPayload, reminderTime) VALUES (?, ?, ?, ?, ?);',
+    [
+      reminder.userId,
+      reminder.guildId,
+      reminder.channelId,
+      reminder.notificationPayload,
+      reminder.reminderTime,
+    ]
+  );
+  const { id } = (await query<{ id: number }>(conn, 'SELECT LAST_INSERT_ID() AS id;', []))[0];
+
+  const jobName = `period-reminder-${id}`;
+  scheduler.scheduleJob(jobName, reminder.reminderTime, () =>
+    sendNotification(conn, client, {
+      ...reminder,
+      notificationType: NotificationType.PeriodicReminder,
+    })
+  );
+  return id;
 };

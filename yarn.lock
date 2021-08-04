@@ -875,10 +875,10 @@ ajv@^6.10.0, ajv@^6.10.2, ajv@^6.12.3:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
-ameo-utils@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/ameo-utils/-/ameo-utils-0.7.2.tgz#488436f6719e976a2fde40581e2df43affeb68b1"
-  integrity sha512-JvgK70Tnm36yqLmuHsUiFMORXjqhkxoZRkIzeaRq1RVAYdiuJNd/3EQuzywJDeiRXoo/WQaxcItCLLy4RboNng==
+ameo-utils@^0.8:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/ameo-utils/-/ameo-utils-0.8.0.tgz#0e2b1959dcdb5bf87f59f8ae5eb8e9755b1a2617"
+  integrity sha512-4OGrJazx9MroDQ4ZCBD3zkyV370vlKQJcgXhrs5gBlMnddv4g2Hf5Y04m9lBg7/SYHriTB0iwKx2FIPNh50wWQ==
   dependencies:
     react-responsive "^7.0.0"
 
@@ -5047,9 +5047,9 @@ table@^5.2.3:
     string-width "^3.0.0"
 
 tar@^4:
-  version "4.4.13"
-  resolved "https://registry.yarnpkg.com/tar/-/tar-4.4.13.tgz#43b364bc52888d555298637b10d60790254ab525"
-  integrity sha512-w2VwSrBoHa5BsSyH+KxEqeQBAllHhccyMFVHtGtdMpF4W7IRWfZjFiQceJPChOeTsSDVUpER2T8FA93pr0L+QA==
+  version "4.4.15"
+  resolved "https://registry.yarnpkg.com/tar/-/tar-4.4.15.tgz#3caced4f39ebd46ddda4d6203d48493a919697f8"
+  integrity sha512-ItbufpujXkry7bHH9NpQyTXPbJ72iTlXgkBAYsAjDXk3Ds8t/3NfO5P4xZGy7u+sYuQUbimgzswX4uQIEeNVOA==
   dependencies:
     chownr "^1.1.1"
     fs-minipass "^1.2.5"

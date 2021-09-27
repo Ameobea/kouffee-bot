@@ -26,7 +26,7 @@
     "@types/yaml": "^1.9.6",
     "ameo-utils": "^0.8",
     "canvas": "^2.8.0",
-    "chrono-node": "^1.4.3",
+    "chrono-node": "^2.2.4",
     "dayjs": "^1.10.7",
     "eris": "^0.15.1",
     "funfix-core": "^7.0.1",

@@ -90,9 +90,7 @@ export const getBalance = async (pool: mysql.Pool, userId: string): Promise<stri
     insert(pool, 'INSERT IGNORE INTO economy_balances (user_id, balance) VALUES (?, 0);', [userId]);
   }
 
-  const balance = Option.of(row)
-    .map(R.prop('balance'))
-    .getOrElse(0);
+  const balance = Option.of(row).map(R.prop('balance')).getOrElse(0);
   return `${numeral(balance).format('1,000')} ${CONF.economy.currency_name}`;
 };
 

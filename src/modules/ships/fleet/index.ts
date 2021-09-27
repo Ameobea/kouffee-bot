@@ -122,7 +122,7 @@ export const computeLiveFleet = (
       }
       return [key, val];
     });
-  return (Object.fromEntries(fleetEntries) as any) as Fleet;
+  return Object.fromEntries(fleetEntries) as any as Fleet;
 };
 
 export const queueFleetProduction = async (
@@ -134,22 +134,16 @@ export const queueFleetProduction = async (
   count: number
 ) => {
   const now = await dbNow(conn);
-  const {
-    checkpointTime,
-    balances,
-    production,
-    productionJobsEndingAfterCheckpointTime,
-  } = await getUserProductionAndBalancesState(conn, userId);
-  const {
-    balances: liveBalances,
-    production: liveProduction,
-  } = computeLiveUserProductionAndBalances(
-    now,
-    checkpointTime,
-    balances,
-    production,
-    productionJobsEndingAfterCheckpointTime
-  );
+  const { checkpointTime, balances, production, productionJobsEndingAfterCheckpointTime } =
+    await getUserProductionAndBalancesState(conn, userId);
+  const { balances: liveBalances, production: liveProduction } =
+    computeLiveUserProductionAndBalances(
+      now,
+      checkpointTime,
+      balances,
+      production,
+      productionJobsEndingAfterCheckpointTime
+    );
 
   const { cost: costPerShip, timeMs: timeMsPerShip } = ShipProductionCostGetters[shipType];
   const upgradeCost = multiplyBalances(costPerShip, BigInt(count));

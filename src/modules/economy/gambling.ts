@@ -156,9 +156,7 @@ export const roulette = async (
     'SELECT * FROM economy_balances WHERE user_id = ?;',
     [user.id]
   );
-  let balance = Option.of(row)
-    .map(R.prop('balance'))
-    .getOrElse(0);
+  let balance = Option.of(row).map(R.prop('balance')).getOrElse(0);
   let betAmount;
   let roll = getRandomInt(38);
   let multiplier = 0;
@@ -168,12 +166,7 @@ export const roulette = async (
     betAmount = Number(msgParts[2]);
   }
   let betChoice = msgParts[1];
-  if (
-    R.isNil(row) ||
-    Option.of(row)
-      .map(R.prop('balance'))
-      .getOrElse(0) < Number(betAmount)
-  ) {
+  if (R.isNil(row) || Option.of(row).map(R.prop('balance')).getOrElse(0) < Number(betAmount)) {
     return `You dont have enough ${CONF.economy.currency_name}!`;
   }
 

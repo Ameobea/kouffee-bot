@@ -52,10 +52,8 @@ const buildNotificationContent = async (
 ): Promise<Eris.MessageContent | Eris.MessageContent[]> => {
   switch (+notification.notificationType) {
     case NotificationType.ProductionUpgrade: {
-      const [productionType, level]: [
-        keyof Production,
-        string
-      ] = notification.notificationPayload.split('-') as [keyof Production, string];
+      const [productionType, level]: [keyof Production, string] =
+        notification.notificationPayload.split('-') as [keyof Production, string];
       return `<@${notification.userId}>: Your ${CONF.ships.resource_names[productionType]} upgrade to level ${level} is complete!`;
     }
     case NotificationType.ShipBuild: {
@@ -138,9 +136,7 @@ export const initTimers = async (client: Eris.Client, conn: mysql.Pool) => {
   const offsetSeconds = localNow.diff(now, 'second');
   notificationsToSchedule.forEach(notification =>
     scheduler.scheduleJob(
-      dayjs(notification.reminderTime)
-        .add(offsetSeconds, 'second')
-        .toDate(),
+      dayjs(notification.reminderTime).add(offsetSeconds, 'second').toDate(),
       () => sendNotification(conn, client, notification)
     )
   );

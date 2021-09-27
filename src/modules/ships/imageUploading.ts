@@ -11,10 +11,7 @@ const buildImageURL = (fileName: string) =>
 
 export const uploadImage = async (content: Buffer): Promise<string> => {
   const hash = crypto.createHash('sha256');
-  const digest = hash
-    .update(content)
-    .digest()
-    .toString('hex');
+  const digest = hash.update(content).digest().toString('hex');
   const fileName = `${digest}.png`;
 
   const bucket = storage.bucket(CONF.ships.google_cloud.images_bucket_name);

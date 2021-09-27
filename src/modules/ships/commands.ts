@@ -70,8 +70,9 @@ ${CONF.ships.resource_names['special1']}: ${fmtCount(balances.special1)}
 `;
 
 const formatProductionJob = (job: ProductionJob, curTier: number, now: Dayjs): string =>
-  `\nUpgrade ${CONF.ships.resource_names[job.productionType]} Mine level ${curTier} -> ${curTier +
-    1}; Completes ${now.to(job.endTime)}`;
+  `\nUpgrade ${CONF.ships.resource_names[job.productionType]} Mine level ${curTier} -> ${
+    curTier + 1
+  }; Completes ${now.to(job.endTime)}`;
 
 const formatProductionUpgrades = (
   liveProduction: Production,
@@ -131,11 +132,9 @@ ${CONF.ships.resource_names['tier2']} Mine: Level ${fmtCount(production.tier2)} 
 ).format('1,000.0')}/sec)
 ${CONF.ships.resource_names['tier3']} Mine: Level ${fmtCount(production.tier3)} (${numeral(
   ProductionIncomeGetters.tier3(production.tier3, 1000)
-).format('1,000.0')}/sec)${formatProductionUpgrades(
-  production,
-  now,
-  productionJobsEndingAfterCheckpointTime
-) || ''}
+).format('1,000.0')}/sec)${
+  formatProductionUpgrades(production, now, productionJobsEndingAfterCheckpointTime) || ''
+}
 \`\`\`
 `;
 
@@ -152,10 +151,8 @@ const printCurFleet = async ({ pool, userId }: CommandHandlerArgs) => {
   const conn2 = await getConn(pool);
 
   try {
-    const {
-      fleet,
-      fleetJobsEndingAfterCheckpointTime: fleetJobsEndingAfterLastCommit,
-    } = await getUserFleetState(conn, userId);
+    const { fleet, fleetJobsEndingAfterCheckpointTime: fleetJobsEndingAfterLastCommit } =
+      await getUserFleetState(conn, userId);
     const applicableFleetTransactions = await getApplicableFleetTransactions(
       conn2,
       fleet.checkpointTime,
@@ -181,13 +178,8 @@ const printCurBalances = async ({ pool, userId }: CommandHandlerArgs): Promise<s
   const [conn1, conn2] = await Promise.all([getConn(pool), getConn(pool)] as const);
 
   try {
-    const [
-      now,
-      { checkpointTime, balances, production, productionJobsEndingAfterCheckpointTime },
-    ] = await Promise.all([
-      dbNow(conn1),
-      getUserProductionAndBalancesState(conn2, userId),
-    ] as const);
+    const [now, { checkpointTime, balances, production, productionJobsEndingAfterCheckpointTime }] =
+      await Promise.all([dbNow(conn1), getUserProductionAndBalancesState(conn2, userId)] as const);
     const { balances: liveBalances } = computeLiveUserProductionAndBalances(
       now,
       checkpointTime,
@@ -207,13 +199,8 @@ const printCurProduction = async ({ pool, userId }: CommandHandlerArgs): Promise
   const [conn1, conn2] = await Promise.all([getConn(pool), getConn(pool)] as const);
 
   try {
-    const [
-      now,
-      { checkpointTime, balances, production, productionJobsEndingAfterCheckpointTime },
-    ] = await Promise.all([
-      dbNow(conn1),
-      getUserProductionAndBalancesState(conn2, userId),
-    ] as const);
+    const [now, { checkpointTime, balances, production, productionJobsEndingAfterCheckpointTime }] =
+      await Promise.all([dbNow(conn1), getUserProductionAndBalancesState(conn2, userId)] as const);
     const { production: liveProduction } = computeLiveUserProductionAndBalances(
       now,
       checkpointTime,
@@ -229,21 +216,21 @@ const printCurProduction = async ({ pool, userId }: CommandHandlerArgs): Promise
   }
 };
 
-const mkNameToKey = <T extends { [key: string]: string }>(map: T, isNumericKey = false) => (
-  name: string | null | undefined
-): keyof T | null => {
-  if (R.isNil(name)) {
-    return null;
-  }
+const mkNameToKey =
+  <T extends { [key: string]: string }>(map: T, isNumericKey = false) =>
+  (name: string | null | undefined): keyof T | null => {
+    if (R.isNil(name)) {
+      return null;
+    }
 
-  const processedName = name.trim().toLowerCase();
-  return Option.of<[string, string]>(
-    Object.entries(map).find(([, name]) => name.toLowerCase().startsWith(processedName))
-  )
-    .map(([k]) => k)
-    .map(k => (isNumericKey ? +k : k))
-    .orNull();
-};
+    const processedName = name.trim().toLowerCase();
+    return Option.of<[string, string]>(
+      Object.entries(map).find(([, name]) => name.toLowerCase().startsWith(processedName))
+    )
+      .map(([k]) => k)
+      .map(k => (isNumericKey ? +k : k))
+      .orNull();
+  };
 
 type ArgsOf<T> = T extends (...args: infer A) => any ? A : never;
 
@@ -253,13 +240,13 @@ const lazyHOF = <F extends (...args: any) => any, T extends (...args: any) => F>
 ): F => {
   let fn: F | null = null;
 
-  return (((...args: ArgsOf<F>) => {
+  return ((...args: ArgsOf<F>) => {
     if (!fn) {
       fn = hof(...(getHOFArgs() as any));
     }
 
     return fn(...(args as any));
-  }) as any) as ReturnType<T>;
+  }) as any as ReturnType<T>;
 };
 
 const productionKeys = Object.keys(buildDefaultProduction());
@@ -317,12 +304,15 @@ const formatCost = (cost: Balances): string => {
 
 const formatCurUpgradeCosts = (liveProduction: Production): string => `
 \`\`\`
-${CONF.ships.resource_names['tier1']} Level ${liveProduction.tier1} -> ${liveProduction.tier1 +
-  1}: ${formatCost(ProductionUpgradeCostGetters.tier1(liveProduction.tier1).cost)}
-${CONF.ships.resource_names['tier2']} Level ${liveProduction.tier2} -> ${liveProduction.tier2 +
-  1}: ${formatCost(ProductionUpgradeCostGetters.tier2(liveProduction.tier2).cost)}
-${CONF.ships.resource_names['tier3']} Level ${liveProduction.tier3} -> ${liveProduction.tier3 +
-  1}: ${formatCost(ProductionUpgradeCostGetters.tier3(liveProduction.tier3).cost)}
+${CONF.ships.resource_names['tier1']} Level ${liveProduction.tier1} -> ${
+  liveProduction.tier1 + 1
+}: ${formatCost(ProductionUpgradeCostGetters.tier1(liveProduction.tier1).cost)}
+${CONF.ships.resource_names['tier2']} Level ${liveProduction.tier2} -> ${
+  liveProduction.tier2 + 1
+}: ${formatCost(ProductionUpgradeCostGetters.tier2(liveProduction.tier2).cost)}
+${CONF.ships.resource_names['tier3']} Level ${liveProduction.tier3} -> ${
+  liveProduction.tier3 + 1
+}: ${formatCost(ProductionUpgradeCostGetters.tier3(liveProduction.tier3).cost)}
 \`\`\`
 `;
 
@@ -416,13 +406,11 @@ const buildFleet = async ({
   pool,
 }: CommandHandlerArgs): Promise<string> => {
   const [rawShipType, rawCount] = args;
-  const shipType = Option.of(rawShipType)
-    .map(buildableShipNameToKey)
-    .orNull();
+  const shipType = Option.of(rawShipType).map(buildableShipNameToKey).orNull();
   const count = +rawCount;
 
   if (R.isNil(shipType) || R.isNil(rawCount) || Number.isNaN(count)) {
-    return 'Usage: \`-s build <ship type> <count>\`';
+    return 'Usage: `-s build <ship type> <count>`';
   }
 
   const conn = await getConn(pool);
@@ -514,10 +502,9 @@ const raid = async ({
 
   return connAndTransact(pool, userId, async (conn: mysql.PoolConnection) => {
     // Figure out what the current fleet looks like which will be sent on this raid
-    const [
-      now,
-      { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime },
-    ] = await Promise.all([dbNow(conn), getUserFleetState(conn, userId)] as const);
+    const [now, { fleet: checkpointFleet, fleetJobsEndingAfterCheckpointTime }] = await Promise.all(
+      [dbNow(conn), getUserFleetState(conn, userId)] as const
+    );
     const applicableFleetTransactions = await getApplicableFleetTransactions(
       conn,
       checkpointFleet.checkpointTime,
@@ -532,9 +519,7 @@ const raid = async ({
 
     // Compute departure + return time and send off the fleet
     const departureTime = now;
-    const returnTime = dayjs(departureTime)
-      .add(getRaidDurationMS(durationTier), 'ms')
-      .toDate();
+    const returnTime = dayjs(departureTime).add(getRaidDurationMS(durationTier), 'ms').toDate();
 
     await insertRaid(conn, {
       userId,
@@ -647,16 +632,14 @@ const printStatus = async ({
       }),
     ]);
 
-    const {
-      production: liveProduction,
-      balances: liveBalances,
-    } = computeLiveUserProductionAndBalances(
-      now,
-      productionCheckpointTime,
-      checkpointBalances,
-      checkpointProduction,
-      productionJobsEndingAfterCheckpointTime
-    );
+    const { production: liveProduction, balances: liveBalances } =
+      computeLiveUserProductionAndBalances(
+        now,
+        productionCheckpointTime,
+        checkpointBalances,
+        checkpointProduction,
+        productionJobsEndingAfterCheckpointTime
+      );
     const applicableFleetTransactions = await getApplicableFleetTransactions(
       conn,
       checkpointFleet.checkpointTime,
@@ -684,9 +667,8 @@ const printStatus = async ({
   const nowDayjs = dayjs(now);
   const clonedProduction = { ...liveProduction };
   const jobIsAfterNow = (job: { endTime: Date }) => dayjs(job.endTime).isAfter(nowDayjs);
-  const productionJobsEndingAfterNow = productionJobsEndingAfterCheckpointTime.filter(
-    jobIsAfterNow
-  );
+  const productionJobsEndingAfterNow =
+    productionJobsEndingAfterCheckpointTime.filter(jobIsAfterNow);
   const fleetJobsEndingAfterNow = fleetJobsEndingAfterCheckpointTime.filter(jobIsAfterNow);
 
   return {

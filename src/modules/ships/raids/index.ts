@@ -15,9 +15,9 @@ const serializeFleet = (fleet: Fleet): { [K in keyof Fleet]: string } =>
   ) as { [K in keyof Fleet]: string };
 
 const deserializeFleet = (serializedFleet: { [K in keyof Fleet]: string }): Fleet =>
-  (Object.fromEntries(
+  Object.fromEntries(
     Object.entries(serializedFleet).map(([key, val]: [keyof Fleet, string]) => [key, BigInt(val)])
-  ) as any) as Fleet;
+  ) as any as Fleet;
 
 export const serializeRaidResult = (raidResult: RaidResult): string => {
   const transformed = {

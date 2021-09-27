@@ -1,4 +1,4 @@
-import Eris, { EmbedOptions } from 'eris';
+import Eris, { EmbedOptions, Message, TextableChannel } from 'eris';
 import mysql from 'mysql';
 import * as R from 'ramda';
 
@@ -203,11 +203,19 @@ const getResponse = async (
     }
   }
 
+  // Save kitty facts general discussion from the scourge for Jacques' sake
+  if (
+    lowerMsg.startsWith(cmd('raids')) &&
+    (msg.channel.id === '285165168973840387' || msg.channel.id === '674182365383229441')
+  ) {
+    return "I love doing raids in OSRS with my friends :)  Let's do some chambers or ToB together soon!";
+  }
+
   // Check to see if it was a custom command and return the custom response if it is
   return getCustomCommandResponse(pool, msgArgContent, msg.author.id);
 };
 
-const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
+const sendMultipleMessages = (msg: Eris.Message<TextableChannel>, messages: string[]) => {
   let i = 0;
   const timedLoop = () => {
     setTimeout(async () => {
@@ -226,7 +234,11 @@ const sendMultipleMessages = (msg: Eris.Message, messages: string[]) => {
 };
 
 const initMsgHandler = (pool: mysql.Pool) => {
-  client.on('messageCreate', async msg => {
+  client.on('messageCreate', async untypedMsg => {
+    if ((!untypedMsg.channel as any as TextableChannel).createMessage) {
+      return;
+    }
+    const msg = untypedMsg as any as Message<TextableChannel>;
     const res = await getResponse(pool, msg.cleanContent || '', msg);
     if (!res) {
       return;
@@ -254,7 +266,8 @@ const ARCHIVE_REACTION_ID = '788608570874265610';
 const initReactionHandler = async (pool: mysql.Pool) => {
   client.on(
     'messageReactionAdd',
-    async ({ id: msgID, channel: { id: channelID } }, emoji, userID) => {
+    async ({ id: msgID, channel: { id: channelID } }, emoji, reactor) => {
+      const userID = reactor.id;
       if (userID === OUR_USER_ID) {
         return;
       }

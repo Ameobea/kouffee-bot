@@ -269,7 +269,7 @@ export const getUserProductionAndBalancesState = async (
       balances: Object.fromEntries(
         Object.entries(productionRes)
           .filter(([key]) => key.includes('Bal'))
-          .map(([key, val]) => [key.replace('Bal', ''), BigInt(val)])
+          .map(([key, val]) => [key.replace('Bal', ''), BigInt(val as any)])
       ) as any,
       productionJobsEndingAfterCheckpointTime: productionJobs,
     };
@@ -293,16 +293,14 @@ export const queueProductionJob = async (
       productionJobsEndingAfterCheckpointTime,
     } = await getUserProductionAndBalancesState(conn, userId);
 
-    const {
-      balances: liveBalances,
-      production: liveProduction,
-    } = computeLiveUserProductionAndBalances(
-      now,
-      checkpointTime,
-      balances,
-      snapshottedProduction,
-      productionJobsEndingAfterCheckpointTime
-    );
+    const { balances: liveBalances, production: liveProduction } =
+      computeLiveUserProductionAndBalances(
+        now,
+        checkpointTime,
+        balances,
+        snapshottedProduction,
+        productionJobsEndingAfterCheckpointTime
+      );
 
     // We find what level the user's production will be upgraded to after finishing the current upgrade queue so that
     // we appropriately charge the user for the tier after that.
@@ -314,9 +312,8 @@ export const queueProductionJob = async (
         // Only care about jobs that haven't been accounted for when computing live production and balances
         .filter(job => job.endTime.getTime() > nowTime).length;
 
-    const { cost: upgradeCost, timeMs: upgradeTimeMs } = ProductionUpgradeCostGetters[
-      productionType
-    ](maxQueuedUpgradeTier);
+    const { cost: upgradeCost, timeMs: upgradeTimeMs } =
+      ProductionUpgradeCostGetters[productionType](maxQueuedUpgradeTier);
     const insufficientResourceTypes = getHasSufficientBalance(upgradeCost, liveBalances);
     if (insufficientResourceTypes) {
       throw Either.right({
@@ -371,9 +368,7 @@ export const getInventoryCheckpointTime = (
     `SELECT * FROM \`${TableNames.InventoryCheckpointTime}\` WHERE userId = ?;`,
     [userId]
   ).then(([row]: { userId: string; checkpointTime: Date }[]) =>
-    Option.of(row)
-      .map(R.prop('checkpointTime'))
-      .orNull()
+    Option.of(row).map(R.prop('checkpointTime')).orNull()
   );
 
 export const insertInventoryTransactions = (

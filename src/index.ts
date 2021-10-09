@@ -176,7 +176,7 @@ const getResponse = async (
     return await getRandomArchivedPost(pool, false);
   } else if (lowerMsg.startsWith(cmd('sc')) || lowerMsg.startsWith(cmd('sankaku'))) {
     return await getSankakuComplexImageDriver(msg);
-  } else if (lowerMsg.startsWith(cmd('b'))) {
+  } else if (lowerMsg.startsWith(cmd('b') + ' ')) {
     return await getSankakuComplexImageDriver(msg, true);
   } else if (lowerMsg.startsWith(cmd('alarm'))) {
     return await createPeriodicReminder(client, pool, msg);

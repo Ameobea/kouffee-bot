@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 import { Storage } from '@google-cloud/storage';
 
-import { CONF } from 'src/conf';
+import { CONF } from '@src/conf.js';
 
 const storage = new Storage();
 

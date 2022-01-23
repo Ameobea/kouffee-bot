@@ -43,6 +43,6 @@
     "ga": true,
     "module": true,
     "__dirname": true,
-    "require": true
+    "require": false
   }
 }

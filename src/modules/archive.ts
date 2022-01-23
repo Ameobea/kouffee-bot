@@ -1,7 +1,7 @@
 import mysql from 'mysql';
 
-import { insert, query } from 'src/dbUtil';
-import { randomInt } from 'src/util';
+import { insert, query } from '@src/dbUtil.js';
+import { randomInt } from '@src/util.js';
 
 export const archivePost = async (
   content: string,

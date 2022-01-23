@@ -2,9 +2,15 @@ import * as R from 'ramda';
 import mysql from 'mysql';
 import { Either, Option } from 'funfix-core';
 
-import { query, update, commit, dbNow, insert, getConn, rollback, _delete } from 'src/dbUtil';
-import { formatInsufficientResourceTypes } from 'src/modules/ships/formatters';
-import { Fleet, BuildableShip, FleetJobRow, FleetJobType, FleetTransactionRow } from './fleet';
+import { query, update, commit, dbNow, insert, getConn, rollback, _delete } from '@src/dbUtil.js';
+import { formatInsufficientResourceTypes } from '@src/modules/ships/formatters.js';
+import {
+  Fleet,
+  BuildableShip,
+  FleetJobRow,
+  FleetJobType,
+  FleetTransactionRow,
+} from './fleet/index.js';
 import {
   Production,
   buildDefaultProduction,
@@ -16,10 +22,10 @@ import {
   computeLiveUserProductionAndBalances,
   subtractBalances,
 } from './economy';
-import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
-import { Item } from './inventory/item';
-import { RaidLocation, RaidDurationTier } from './raids/types';
-import { InventoryTransactionRow, dedupInventory } from './inventory';
+import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades.js';
+import { Item } from './inventory/item.js';
+import { RaidLocation, RaidDurationTier } from './raids/types.js';
+import { InventoryTransactionRow, dedupInventory } from './inventory/index.js';
 
 export const TableNames = {
   Fleet: 'ships_fleets',

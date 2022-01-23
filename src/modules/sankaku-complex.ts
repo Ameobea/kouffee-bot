@@ -7,7 +7,7 @@ import fetch from 'node-fetch';
 import Eris from 'eris';
 
 import { CommandResponse } from '..';
-import { btoa } from 'src/util';
+import { btoa } from '@src/util.js';
 
 interface SearchResultsCacheEntry {
   images: SearchResultImage[];

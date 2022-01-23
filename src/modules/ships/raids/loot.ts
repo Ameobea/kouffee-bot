@@ -1,11 +1,11 @@
 import * as R from 'ramda';
 import { UnimplementedError } from 'ameo-utils';
 
-import { randomInt } from 'src/util';
-import { Item, Tier } from '../inventory/item';
-import { Fleet } from '../fleet';
-import { getRaidDurationMS } from '../commands';
-import { RaidLocation, RaidDurationTier } from './types';
+import { randomInt } from '@src/util.js';
+import { Item, Tier } from '../inventory/item.js';
+import { Fleet } from '../fleet/index.js';
+import { getRaidDurationMS } from '../commands.js';
+import { RaidLocation, RaidDurationTier } from './types.js';
 
 const RewardMultiplierByDurationTier: { [K in RaidDurationTier]: number } = {
   [RaidDurationTier.Short]: 1.0,

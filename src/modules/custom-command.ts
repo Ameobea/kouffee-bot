@@ -2,9 +2,9 @@ import * as R from 'ramda';
 import mysql from 'mysql';
 import Eris from 'eris';
 
-import { insert, query, _delete } from 'src/dbUtil';
-import { CONF } from 'src/conf';
-import { deJoqify } from 'src/util';
+import { insert, query, _delete } from '@src/dbUtil.js';
+import { CONF } from '@src/conf.js';
+import { deJoqify } from '@src/util.js';
 
 /**
  * Adds the functionality of adding/removing simple custom commands that display text in response to a keyword

@@ -3,7 +3,7 @@
  */
 
 import mysql from 'mysql';
-import { query } from 'src/dbUtil';
+import { query } from '@src/dbUtil.js';
 
 export const getRandomLikedTweetURL = async (conn: mysql.PoolConnection | mysql.Pool) => {
   const res = await query<{ tweet_id: string }>(

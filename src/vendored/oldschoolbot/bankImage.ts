@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { createCanvas, Image, registerFont } from 'canvas';
+import canvas from 'canvas';
 
 import {
   generateHexColorForCashStack,
@@ -13,8 +13,10 @@ import {
   saveCtx,
   restoreCtx,
 } from './lib/util';
-import { getBaseDir } from 'src/util';
-import { Item, ITEMS_BY_ID } from 'src/modules/ships/inventory/item';
+import { getBaseDir } from '@src/util.js';
+import { Item, ITEMS_BY_ID } from '@src/modules/ships/inventory/item.js';
+
+const { createCanvas, registerFont } = canvas;
 
 registerFont('./src/vendored/oldschoolbot/resources/osrs-font.ttf', { family: 'Regular' });
 registerFont('./src/vendored/oldschoolbot/resources/osrs-font-compact.otf', { family: 'Regular' });
@@ -33,7 +35,7 @@ const distanceFromSide = 16;
 
 export default class BankImageTask {
   public itemIconsList: Set<string> = new Set();
-  public itemIconImagesCache: Map<string, Image> = new Map();
+  public itemIconImagesCache: Map<string, canvas.Image> = new Map();
 
   async init() {
     await this.cacheFiles();
@@ -52,7 +54,7 @@ export default class BankImageTask {
     }
   }
 
-  async getItemImage(itemID: number, tier?: number | null): Promise<Image> {
+  async getItemImage(itemID: number, tier?: number | null): Promise<canvas.Image> {
     const uniqueId = R.isNil(tier) ? itemID.toString() : `${itemID}_${tier + 1}`;
     const isOnDisk = this.itemIconsList.has(uniqueId);
     const cachedImage = this.itemIconImagesCache.get(uniqueId);
@@ -76,7 +78,7 @@ export default class BankImageTask {
 
   async generateBankImage(
     itemLoot: Item[],
-    title: string = '',
+    title = '',
     flags: { [key: string]: string | number } = {}
   ): Promise<Buffer> {
     const canvas = createCanvas(488, 331);
@@ -155,8 +157,8 @@ export default class BankImageTask {
 
     for (let i = 0; i < chunkedLoot.length; i++) {
       if (i > 6) {
-        let state = saveCtx(ctx);
-        let temp = ctx.getImageData(0, 0, canvas.width, canvas.height - 10);
+        const state = saveCtx(ctx);
+        const temp = ctx.getImageData(0, 0, canvas.width, canvas.height - 10);
         canvas.height += itemSize + (i === chunkedLoot.length ? 0 : spacer);
 
         const ptrn = ctx.createPattern(repeaterImage, 'repeat');

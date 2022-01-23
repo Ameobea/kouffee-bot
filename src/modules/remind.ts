@@ -12,7 +12,7 @@ import {
   PeriodicReminderRow,
   schedulePeriodicReminder,
 } from './ships/scheduler';
-import { dbNow, query, _delete } from 'src/dbUtil';
+import { dbNow, query, _delete } from '@src/dbUtil.js';
 
 export const createReminder = async (
   client: Eris.Client,

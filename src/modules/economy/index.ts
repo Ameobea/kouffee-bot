@@ -6,8 +6,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { Option } from 'funfix-core';
 import numeral from 'numeral';
 
-import { CONF } from '../../conf';
-import { query, update, insert, getConn, commit, dbNow } from '../../dbUtil';
+import { CONF } from '../../conf.js';
+import { query, update, insert, getConn, commit, dbNow } from '../../dbUtil.js';
 
 dayjs.extend(relativeTime);
 

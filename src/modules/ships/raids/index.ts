@@ -1,11 +1,11 @@
 import * as R from 'ramda';
 import { ValueOf } from 'ameo-utils/types';
 
-import { RaidLocation, RaidResult, RaidDurationTier } from './types';
-import { Item } from 'src/modules/ships/inventory/item';
-import { Fleet } from '../fleet';
-import { rollRaidReward } from './loot';
-import { maybeDoCombat } from './combat';
+import { RaidLocation, RaidResult, RaidDurationTier } from './types.js';
+import { Item } from '@src/modules/ships/inventory/item.js';
+import { Fleet } from '../fleet/index.js';
+import { rollRaidReward } from './loot.js';
+import { maybeDoCombat } from './combat.js';
 
 const serializeFleet = (fleet: Fleet): { [K in keyof Fleet]: string } =>
   Object.fromEntries(

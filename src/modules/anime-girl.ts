@@ -3,9 +3,9 @@
  */
 
 import mysql from 'mysql';
-import { query } from 'src/dbUtil';
+import { query } from '@src/dbUtil.js';
 
 export const getRandomAnimeGirlURL = async (conn: mysql.PoolConnection | mysql.Pool) =>
-  query<{ url: string }>(conn, 'SELECT url from `anime_girls` ORDER BY RAND() LIMIT 1;').then(
-    r => r[0].url
+  query<{ url: string }>(conn, 'SELECT url from `anime_girls` ORDER BY RAND() LIMIT 1;').then(r =>
+    encodeURI(r[0].url)
   );

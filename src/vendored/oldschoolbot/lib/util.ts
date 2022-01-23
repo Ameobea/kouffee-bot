@@ -1,4 +1,6 @@
-import { Image } from 'canvas';
+import canvas from 'canvas';
+
+const { Image } = canvas;
 
 export function generateHexColorForCashStack(coins: number) {
   if (coins > 9999999) {
@@ -12,7 +14,7 @@ export function generateHexColorForCashStack(coins: number) {
   return '#FFFF00';
 }
 
-export function canvasImageFromBuffer(imageBuffer: Buffer): Promise<Image> {
+export function canvasImageFromBuffer(imageBuffer: Buffer): Promise<canvas.Image> {
   return new Promise((resolve, reject) => {
     const canvasImage = new Image();
 
@@ -37,7 +39,7 @@ export function cleanString(str: string) {
 }
 
 export function saveCtx(ctx: any) {
-  let props = [
+  const props = [
     'strokeStyle',
     'fillStyle',
     'globalAlpha',
@@ -57,7 +59,7 @@ export function saveCtx(ctx: any) {
     'direction',
     'imageSmoothingEnabled',
   ];
-  let state: { [key: string]: any } = {};
+  const state: { [key: string]: any } = {};
   for (const prop of props) {
     state[prop] = ctx[prop];
   }

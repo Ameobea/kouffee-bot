@@ -1,5 +1,5 @@
-import { Fleet } from '../fleet';
-import { RaidLocation, RaidDurationTier } from './types';
+import { Fleet } from '../fleet/index.js';
+import { RaidLocation, RaidDurationTier } from './types.js';
 
 export const maybeDoCombat = async ({
   location,

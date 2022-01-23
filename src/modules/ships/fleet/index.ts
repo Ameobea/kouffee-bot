@@ -4,7 +4,7 @@ import numeral from 'numeral';
 import dayjs from 'dayjs';
 import Eris from 'eris';
 
-import { ShipProductionCostGetters } from 'src/modules/ships/economy/curves/productionUpgrades';
+import { ShipProductionCostGetters } from '@src/modules/ships/economy/curves/productionUpgrades.js';
 import {
   getUserProductionAndBalancesState,
   setProductionAndBalances,
@@ -13,17 +13,17 @@ import {
   transact,
   TableNames,
   setFleet,
-} from 'src/modules/ships/db';
-import { dbNow, query } from 'src/dbUtil';
+} from '@src/modules/ships/db';
+import { dbNow, query } from '@src/dbUtil.js';
 import {
   computeLiveUserProductionAndBalances,
   multiplyBalances,
   getHasSufficientBalance,
   subtractBalances,
-} from 'src/modules/ships/economy';
-import { formatInsufficientResourceTypes } from 'src/modules/ships/formatters';
-import { CONF } from 'src/conf';
-import { setReminder, NotificationType } from 'src/modules/ships/scheduler';
+} from '@src/modules/ships/economy';
+import { formatInsufficientResourceTypes } from '@src/modules/ships/formatters.js';
+import { CONF } from '@src/conf.js';
+import { setReminder, NotificationType } from '@src/modules/ships/scheduler.js';
 
 export type BuildableShip = 'ship1' | 'ship2' | 'ship3' | 'shipSpecial1';
 export const AllBuildableShipTypes: BuildableShip[] = ['ship1', 'ship2', 'ship3', 'shipSpecial1'];

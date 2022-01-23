@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 
-import { Item } from './item';
+import { Item } from './item.js';
 
 export interface InventoryTransactionRow {
   userId: string;

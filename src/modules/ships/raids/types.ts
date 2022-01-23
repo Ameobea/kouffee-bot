@@ -1,5 +1,5 @@
-import { Item } from '../inventory/item';
-import { Fleet } from '../fleet';
+import { Item } from '../inventory/item.js';
+import { Fleet } from '../fleet/index.js';
 
 export enum RaidDurationTier {
   Short,

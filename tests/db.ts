@@ -3,8 +3,8 @@ import mysql from 'mysql';
 const TEST_USER_DISCORD_ID_1 = '1001' as const;
 const TEST_USER_DISCORD_ID_2 = '1002' as const;
 
-import { createConnPool, _delete, query, dbNow } from '../src/dbUtil';
-import { loadConf } from '../src/conf';
+import { createConnPool, _delete, query, dbNow } from '../src/dbUtil.js';
+import { loadConf } from '../src/conf.js';
 import {
   TableNames,
   insertRaid,
@@ -12,10 +12,10 @@ import {
   connAndTransact,
   transact,
 } from '../src/modules/ships/db';
-import { timeout } from '../src/util';
-import { RaidLocation } from '../src/modules/ships/raids/types';
-import { buildDefaultFleet } from '../src/modules/ships/fleet';
-import { RaidDurationTier } from '../src/modules/ships/raids/types';
+import { timeout } from '../src/util.js';
+import { RaidLocation } from '../src/modules/ships/raids/types.js';
+import { buildDefaultFleet } from '../src/modules/ships/fleet/index.js';
+import { RaidDurationTier } from '../src/modules/ships/raids/types.js';
 
 let pool: mysql.Pool;
 

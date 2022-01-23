@@ -2,11 +2,11 @@ import * as R from 'ramda';
 import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
 
-import { Balances } from 'src/modules/ships/economy';
-import { CONF } from 'src/conf';
-import { Item, ITEMS_BY_ID } from './inventory/item';
-import { FleetJob } from './fleet';
-import { RaidDurationTier } from './raids/types';
+import { Balances } from '@src/modules/ships/economy/index.js';
+import { CONF } from '@src/conf.js';
+import { Item, ITEMS_BY_ID } from './inventory/item.js';
+import { FleetJob } from './fleet/index.js';
+import { RaidDurationTier } from './raids/types.js';
 
 export const formatInsufficientResourceTypes = (
   insufficientResourceTypes: (keyof Balances)[]

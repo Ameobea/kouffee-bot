@@ -1,7 +1,7 @@
 import mysql from 'mysql';
 import dayjs from 'dayjs';
 
-import { Conf } from './conf';
+import { Conf } from './conf.js';
 
 export const createConnPool = (conf: Conf) =>
   mysql.createPool({

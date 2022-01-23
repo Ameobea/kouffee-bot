@@ -108,3 +108,4 @@ dist/*
 conf.toml
 
 service-account.json
+.husky

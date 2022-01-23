@@ -1,10 +1,10 @@
 import fs from 'fs';
 
 import toml from 'toml';
-import { Balances } from './modules/ships/economy';
-import { Fleet } from './modules/ships/fleet';
-import { Tier } from './modules/ships/inventory/item';
-import { RaidLocation } from './modules/ships/raids/types';
+import { Balances } from './modules/ships/economy/index.js';
+import { Fleet } from './modules/ships/fleet/index.js';
+import { Tier } from './modules/ships/inventory/item.js';
+import { RaidLocation } from './modules/ships/raids/types.js';
 
 export interface DatabaseConf {
   host: string;

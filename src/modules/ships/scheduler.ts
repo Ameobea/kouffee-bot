@@ -9,16 +9,16 @@ import scheduler from 'node-schedule';
 import dayjs from 'dayjs';
 import numeral from 'numeral';
 
-import { query, insert, dbNow } from 'src/dbUtil';
-import { CONF } from 'src/conf';
-import { TableNames } from './db';
-import { Production } from './economy';
-import { BuildableShip } from './fleet';
-import { getRaidTimeDurString, formatInventory } from './formatters';
-import { deserializeRaidResult } from './raids';
-import { RaidResult } from './raids/types';
-import { deJoqify } from 'src/util';
-import { getRandomAnimeGirlURL } from '../anime-girl';
+import { query, insert, dbNow } from '@src/dbUtil.js';
+import { CONF } from '@src/conf.js';
+import { TableNames } from './db.js';
+import { Production } from './economy/index.js';
+import { BuildableShip } from './fleet/index.js';
+import { getRaidTimeDurString, formatInventory } from './formatters.js';
+import { deserializeRaidResult } from './raids/index.js';
+import { RaidResult } from './raids/types.js';
+import { deJoqify } from '@src/util.js';
+import { getRandomAnimeGirlURL } from '../anime-girl.js';
 
 export enum NotificationType {
   ProductionUpgrade = 0,

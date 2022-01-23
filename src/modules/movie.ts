@@ -4,7 +4,7 @@
 
 import mysql from 'mysql';
 
-import { query, insert, _delete, update } from 'src/dbUtil';
+import { query, insert, _delete, update } from '@src/dbUtil.js';
 
 export const pickMovie = async (conn: mysql.Pool | mysql.PoolConnection) =>
   (

@@ -1,8 +1,8 @@
 import mysql from 'mysql';
 import * as R from 'ramda';
 import { Option } from 'funfix-core';
-import { CONF } from '../../conf';
-import { query, update, getConn, commit } from '../../dbUtil';
+import { CONF } from '../../conf.js';
+import { query, update, getConn, commit } from '../../dbUtil.js';
 import Eris, { EmbedOptions } from 'eris';
 
 const acceptedTextBets = [

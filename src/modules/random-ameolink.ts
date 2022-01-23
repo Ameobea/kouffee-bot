@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import * as R from 'ramda';
 
-import { randomInt } from '../util';
+import { randomInt } from '../util.js';
 
 const buildLink = (id: string) => `https://ameo.link/u/${id}.png`;
 

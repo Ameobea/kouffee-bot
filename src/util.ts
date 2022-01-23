@@ -1,4 +1,6 @@
 import * as path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 export const randomInt = (lowerBound: number, upperBound: number): number =>
   lowerBound + Math.floor(Math.random() * (upperBound - lowerBound + 1));
@@ -6,6 +8,7 @@ export const randomInt = (lowerBound: number, upperBound: number): number =>
 export const timeout = async (timeoutMs: number) =>
   new Promise(resolve => setTimeout(resolve, timeoutMs));
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 export const getBaseDir = () => path.join(__dirname, '../..');
 
 export const replaceAll = (haystack: string, from: string, to: string) => {

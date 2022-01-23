@@ -1,10 +1,11 @@
-import path from 'path';
+import path, { dirname } from 'path';
 import fs from 'fs';
 import YAML from 'yaml';
 import { parse } from '@ctrl/golang-template';
 import { Option } from 'funfix-core';
 
-import { CONF } from 'src/conf';
+import { CONF } from '@src/conf.js';
+import { fileURLToPath } from 'url';
 
 export enum Tier {
   Tier1,
@@ -36,13 +37,14 @@ export interface Item {
 
 export const ITEMS_BY_ID: Map<number, ItemDefinition> = new Map();
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 export const initItemData = async () => {
   const fileContent = await new Promise<string>((resolve, reject) =>
     fs.readFile(
       path.join(
         __dirname,
         __dirname.includes('dist')
-          ? '../../../../../src/modules/ships/inventory/items.yml'
+          ? '../../../../src/modules/ships/inventory/items.yml'
           : './items.yml'
       ),
       'utf8',

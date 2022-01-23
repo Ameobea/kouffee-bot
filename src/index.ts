@@ -2,21 +2,21 @@ import Eris, { EmbedOptions, Message, TextableChannel } from 'eris';
 import mysql from 'mysql';
 import * as R from 'ramda';
 
-import { loadConf, CONF } from './conf';
-import { createConnPool } from './dbUtil';
-import { claimDaily, getBalance, getTopBalances } from './modules/economy';
-import { getRandomAmeoLink } from './modules/random-ameolink';
-import { roulette } from './modules/economy/gambling';
-import { maybeHandleCommand, init as initShips } from './modules/ships';
-import { initItemData } from './modules/ships/inventory/item';
+import { loadConf, CONF } from './conf.js';
+import { createConnPool } from './dbUtil.js';
+import { claimDaily, getBalance, getTopBalances } from './modules/economy/index.js';
+import { getRandomAmeoLink } from './modules/random-ameolink.js';
+import { roulette } from './modules/economy/gambling.js';
+import { maybeHandleCommand, init as initShips } from './modules/ships/index.js';
+import { initItemData } from './modules/ships/inventory/item.js';
 import {
   getCustomCommandResponse,
   addCustomCommand,
   removeCustomCommand,
   getRandomCustomCommand,
 } from './modules/custom-command';
-import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet';
-import { getRandomAnimeGirlURL } from './modules/anime-girl';
+import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet.js';
+import { getRandomAnimeGirlURL } from './modules/anime-girl.js';
 import {
   createPeriodicReminder,
   createReminder,
@@ -31,10 +31,10 @@ import {
   setMovieWatched,
   hasMovie,
 } from './modules/movie';
-import { archivePost, getRandomArchivedPost } from './modules/archive';
-import { getRandomOSRSLink } from './modules/random-osrs';
-import { getSankakuComplexImageDriver } from './modules/sankaku-complex';
-import { getServerDate } from './modules/serverDate';
+import { archivePost, getRandomArchivedPost } from './modules/archive.js';
+import { getRandomOSRSLink } from './modules/random-osrs.js';
+import { getSankakuComplexImageDriver } from './modules/sankaku-complex.js';
+import { getServerDate } from './modules/serverDate.js';
 
 const token = process.env.DISCORD_TOKEN;
 

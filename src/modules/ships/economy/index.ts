@@ -1,7 +1,7 @@
 import * as R from 'ramda';
 import { filterNils } from 'ameo-utils/util';
 
-import { ProductionIncomeGetters } from './curves/production';
+import { ProductionIncomeGetters } from './curves/production.js';
 
 export interface Balances {
   tier1: bigint;

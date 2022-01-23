@@ -5,9 +5,8 @@ import numeral from 'numeral';
 import dayjs, { Dayjs } from 'dayjs';
 import { Option } from 'funfix-core';
 
-import { dbNow, getConn } from 'src/dbUtil';
-import { CONF } from 'src/conf';
-import { cmd } from 'src';
+import { dbNow, getConn } from '@src/dbUtil.js';
+import { CONF } from '@src/conf.js';
 import {
   getUserProductionAndBalancesState,
   queueProductionJob,
@@ -35,15 +34,16 @@ import {
   ProductionJob,
   buildDefaultProduction,
 } from './economy';
-import { ProductionIncomeGetters } from './economy/curves/production';
-import { setReminder, NotificationType } from './scheduler';
-import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades';
-import { getRaidTimeDurString, formatFleetJob } from './formatters';
-import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids';
-import { RaidLocation, RaidResult, RaidDurationTier } from './raids/types';
-import { InventoryTransactionRow } from './inventory';
-import BankImageTask from 'src/vendored/oldschoolbot/bankImage';
-import { uploadImage } from './imageUploading';
+import { ProductionIncomeGetters } from './economy/curves/production.js';
+import { setReminder, NotificationType } from './scheduler.js';
+import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades.js';
+import { getRaidTimeDurString, formatFleetJob } from './formatters.js';
+import { getAvailableRaidLocations, doRaid, serializeRaidResult } from './raids/index.js';
+import { RaidLocation, RaidResult, RaidDurationTier } from './raids/types.js';
+import { InventoryTransactionRow } from './inventory/index.js';
+import BankImageTask from '@src/vendored/oldschoolbot/bankImage.js';
+import { uploadImage } from './imageUploading.js';
+import { cmd } from '@src/index.js';
 
 const fmtCount = (count: number | bigint): string =>
   numeral(count).format(count > 10000 ? '1,000.0a' : '1,000');

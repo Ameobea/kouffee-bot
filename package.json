@@ -45,7 +45,7 @@
     "random-js": "^2.1.0",
     "toml": "^3.0.0",
     "uuid": "^8.3.2",
-    "yaml": "^1.10.2"
+    "yaml": "^2.2.2"
   },
   "devDependencies": {
     "@types/mysql": "^2.15.20",

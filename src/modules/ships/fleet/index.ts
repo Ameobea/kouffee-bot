@@ -13,14 +13,14 @@ import {
   transact,
   TableNames,
   setFleet,
-} from '@src/modules/ships/db';
+} from '@src/modules/ships/db.js';
 import { dbNow, query } from '@src/dbUtil.js';
 import {
   computeLiveUserProductionAndBalances,
   multiplyBalances,
   getHasSufficientBalance,
   subtractBalances,
-} from '@src/modules/ships/economy';
+} from '@src/modules/ships/economy/index.js';
 import { formatInsufficientResourceTypes } from '@src/modules/ships/formatters.js';
 import { CONF } from '@src/conf.js';
 import { setReminder, NotificationType } from '@src/modules/ships/scheduler.js';

@@ -1,5 +1,5 @@
-import { mkExpoCurve } from '.';
-import { Production } from '..';
+import { mkExpoCurve } from './index.js';
+import { Production } from '../index.js';
 
 export const ProductionIncomeGetters: {
   [K in keyof Production]: (curTier: number, durationMs: number) => bigint;

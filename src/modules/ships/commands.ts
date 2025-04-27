@@ -17,7 +17,7 @@ import {
   getApplicableFleetTransactions,
   insertInventoryTransactions,
   insertFleetTransactions,
-} from './db';
+} from './db.js';
 import {
   Fleet,
   computeLiveFleet,
@@ -26,14 +26,14 @@ import {
   BuildableShip,
   getUserFleetState,
   FleetTransactionRow,
-} from './fleet';
+} from './fleet/index.js';
 import {
   computeLiveUserProductionAndBalances,
   Balances,
   Production,
   ProductionJob,
   buildDefaultProduction,
-} from './economy';
+} from './economy/index.js';
 import { ProductionIncomeGetters } from './economy/curves/production.js';
 import { setReminder, NotificationType } from './scheduler.js';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades.js';
@@ -316,7 +316,7 @@ ${CONF.ships.resource_names['tier3']} Level ${liveProduction.tier3} -> ${
 \`\`\`
 `;
 
-const addByKey = <T>(a: T, b: T): T =>
+const addByKey = <T extends Record<string, any>>(a: T, b: T): T =>
   Object.fromEntries(
     Object.entries(a).map(([key, val]) => [key, val + Option.of(b[key as keyof T]).getOrElse(0)])
   ) as any; // idc
@@ -449,7 +449,7 @@ export const getRaidDurationMS = (durationTier: RaidDurationTier): number =>
     // [RaidDurationTier.Short]: 2 * 1000,
     // [RaidDurationTier.Medium]: 5 * 1000,
     // [RaidDurationTier.Long]: 10 * 1000,
-  }[durationTier]);
+  })[durationTier];
 
 const raid = async ({
   userId,

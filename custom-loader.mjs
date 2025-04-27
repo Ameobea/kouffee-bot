@@ -1,7 +1,11 @@
 // FROM: https://github.com/ilearnio/module-alias/issues/59#issuecomment-500480450
 
+import fs from 'fs';
 import path from 'path';
-import npmPackage from './package.json';
+
+const loadJSON = path => JSON.parse(fs.readFileSync(new URL(path, import.meta.url)));
+
+const npmPackage = loadJSON('./package.json');
 
 const getAliases = () => {
   const base = process.cwd();
@@ -28,7 +32,6 @@ export const resolve = (specifier, parentModuleURL, defaultResolve) => {
 
   const newSpecifier =
     alias === undefined ? specifier : path.join(aliases[alias], specifier.substr(alias.length));
-  // console.log(newSpecifier);
 
   return defaultResolve(newSpecifier, parentModuleURL);
 };

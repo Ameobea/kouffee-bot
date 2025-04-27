@@ -14,7 +14,7 @@ import {
   addCustomCommand,
   removeCustomCommand,
   getRandomCustomCommand,
-} from './modules/custom-command';
+} from './modules/custom-command.js';
 import { getRandomLikedTweetURL } from './modules/random-ameo-liked-tweet.js';
 import { getRandomAnimeGirlURL } from './modules/anime-girl.js';
 import {
@@ -22,7 +22,7 @@ import {
   createReminder,
   deletePeriodicReminder,
   listPeriodicReminders,
-} from './modules/remind';
+} from './modules/remind.js';
 import {
   pickMovie,
   addMovie,
@@ -30,7 +30,7 @@ import {
   listMovies,
   setMovieWatched,
   hasMovie,
-} from './modules/movie';
+} from './modules/movie.js';
 import { archivePost, getRandomArchivedPost } from './modules/archive.js';
 import { getRandomOSRSLink } from './modules/random-osrs.js';
 import { getSankakuComplexImageDriver } from './modules/sankaku-complex.js';

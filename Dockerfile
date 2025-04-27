@@ -1,4 +1,4 @@
-FROM node:17.4.0-stretch-slim
+FROM node:22.3-bookworm-slim
 
 ADD . /app
 WORKDIR /app

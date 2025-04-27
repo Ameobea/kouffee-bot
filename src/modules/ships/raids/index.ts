@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import { ValueOf } from 'ameo-utils/types';
+import { ValueOf } from 'ameo-utils/types.js';
 
 import { RaidLocation, RaidResult, RaidDurationTier } from './types.js';
 import { Item } from '@src/modules/ships/inventory/item.js';

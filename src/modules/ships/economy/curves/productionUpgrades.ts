@@ -1,6 +1,6 @@
 import { Production, Balances } from '@src/modules/ships/economy/index.js';
 import { BuildableShip } from '@src/modules/ships/fleet/index.js';
-import { mkExpoCurve } from '.';
+import { mkExpoCurve } from './index.js';
 
 export const ProductionUpgradeCostGetters: {
   [K in keyof Production]: (curTier: number) => { cost: Balances; timeMs: number };

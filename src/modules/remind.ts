@@ -11,7 +11,7 @@ import {
   NotificationType,
   PeriodicReminderRow,
   schedulePeriodicReminder,
-} from './ships/scheduler';
+} from './ships/scheduler.js';
 import { dbNow, query, _delete } from '@src/dbUtil.js';
 
 export const createReminder = async (

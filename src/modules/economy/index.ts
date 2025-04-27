@@ -2,7 +2,7 @@ import eris from 'eris';
 import mysql from 'mysql';
 import * as R from 'ramda';
 import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import relativeTime from 'dayjs/plugin/relativeTime.js';
 import { Option } from 'funfix-core';
 import numeral from 'numeral';
 

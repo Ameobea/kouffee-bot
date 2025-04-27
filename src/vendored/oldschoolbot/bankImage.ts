@@ -12,7 +12,7 @@ import {
   cleanString,
   saveCtx,
   restoreCtx,
-} from './lib/util';
+} from './lib/util.js';
 import { getBaseDir } from '@src/util.js';
 import { Item, ITEMS_BY_ID } from '@src/modules/ships/inventory/item.js';
 

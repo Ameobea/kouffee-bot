@@ -21,7 +21,7 @@ import {
   getHasSufficientBalance,
   computeLiveUserProductionAndBalances,
   subtractBalances,
-} from './economy';
+} from './economy/index.js';
 import { ProductionUpgradeCostGetters } from './economy/curves/productionUpgrades.js';
 import { Item } from './inventory/item.js';
 import { RaidLocation, RaidDurationTier } from './raids/types.js';

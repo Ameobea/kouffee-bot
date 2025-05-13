@@ -176,15 +176,16 @@ export const queueFleetProduction = async (
     return completionTime;
   });
 
-  if (msg.channel.type === 0) {
+  const channel = client.getChannel(msg.channel.id);
+  if (channel.type === 0) {
     setReminder(
       client,
       conn,
       {
         userId,
         notificationType: NotificationType.ShipBuild,
-        guildId: msg.channel.guild.id,
-        channelId: msg.channel.id,
+        guildId: channel.guild.id,
+        channelId: channel.id,
         reminderTime: completionTime,
         notificationPayload: `${shipType}-${count}`,
       },
@@ -192,7 +193,7 @@ export const queueFleetProduction = async (
     );
   } else {
     console.warn(
-      `Unhandled channel type of \`${msg.channel.type}\` in fleet queue command; not sending reminder.`
+      `Unhandled channel type of \`${channel.type}\` in fleet queue command; not sending reminder.`
     );
   }
 

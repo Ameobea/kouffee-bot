@@ -566,15 +566,16 @@ const raid = async ({
     // Add fleet transaction for the raid's combat result
 
     // Register a reminder for when the fleet returns
-    if (msg.channel.type === 0) {
+    const channel = client.getChannel(msg.channel.id);
+    if (channel.type === 0) {
       setReminder(
         client,
         conn,
         {
           userId,
           notificationType: NotificationType.RaidReturn,
-          guildId: msg.channel.guild.id,
-          channelId: msg.channel.id,
+          guildId: channel.guild.id,
+          channelId: channel.id,
           notificationPayload: serializedRaidResult,
           reminderTime: returnTime,
         },

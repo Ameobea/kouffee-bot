@@ -44,6 +44,7 @@ if (!token) {
 
 const client = Eris(token, {
   intents: [
+    'guilds',
     'messageContent',
     'guildMessageReactions',
     'directMessageReactions',
@@ -74,6 +75,7 @@ const getResponse = async (
     return;
   }
 
+  const channel = client.getChannel(msg.channel.id);
   const lowerMsg = msgContent.trim().toLowerCase();
   if (lowerMsg.includes('http://') || lowerMsg.includes('https://') || msg.attachments.length > 0) {
     archivePost(
@@ -81,7 +83,7 @@ const getResponse = async (
       msg.author.id,
       msg.author.username,
       pool,
-      msg.channel.type === 0 ? msg.channel.name : 'unknown',
+      channel.type === 0 ? channel.name : 'unknown',
       false
     );
   }
@@ -178,7 +180,7 @@ const getResponse = async (
     lowerMsg.startsWith(cmd('shitpost'))
   ) {
     // Disable in meme team
-    if (msg.channel.type === 0 && msg.channel.guild.id === '161336072884715521') {
+    if (channel.type === 0 && channel.guild.id === '161336072884715521') {
       return 'The admins have voted to disable this command in this server.  You can use #kouffee-shop in Kitty Facts';
     }
     return await getRandomArchivedPost(pool, false);
@@ -214,7 +216,7 @@ const getResponse = async (
   // Save kitty facts general discussion from the scourge for Jacques' sake
   if (
     lowerMsg.startsWith(cmd('raids')) &&
-    (msg.channel.id === '285165168973840387' || msg.channel.id === '674182365383229441')
+    (channel.id === '285165168973840387' || channel.id === '674182365383229441')
   ) {
     return "I love doing raids in OSRS with my friends :)  Let's do some chambers or ToB together soon!";
   }
@@ -286,12 +288,13 @@ const initReactionHandler = async (pool: mysql.Pool) => {
           return;
         }
 
+        const channel = client.getChannel(channelID);
         await archivePost(
           msg.cleanContent!,
           userID,
           msg.author.username,
           pool,
-          msg.channel.type === 0 ? msg.channel.name : 'unknown',
+          channel.type === 0 ? channel.name : 'unknown',
           true
         );
         await msg.addReaction(`${ARCHIVE_REACTION_NAME}:${ARCHIVE_REACTION_ID}`);

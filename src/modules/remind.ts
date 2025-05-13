@@ -19,16 +19,19 @@ export const createReminder = async (
   conn: mysql.Pool | mysql.PoolConnection,
   msg: Eris.Message
 ) => {
+  console.log(msg.content);
   const [, ...rest] = msg.content.split(/\s+/g).filter(R.identity);
   if (R.isEmpty(rest)) {
     return 'Format: `!remind <when> <message>`';
   }
 
   const msgContent = rest.join(' ');
+  console.log({ msgContent });
 
   let when: Date;
   let text: string;
   const now = await dbNow(conn);
+  const channel = client.getChannel(msg.channel.id);
   try {
     const [{ start, text: text2 }] = chrono.parse(msgContent, now);
     when = start.date();
@@ -37,10 +40,12 @@ export const createReminder = async (
       throw 0;
     }
 
-    if (msg.channel.type !== 0) {
+    if (channel.type !== 0) {
+      console.warn(`Unhandled channel type for reminder: ${msg.channel.type}`);
       return 'Unable to respond on this channel because it is of an unhandlable type';
     }
-  } catch (_err) {
+  } catch (err) {
+    console.error('Error parsing reminder time', err);
     return 'Unable to parse reminder time; try something like "in 3 days" or "at 3:30 PM"';
   }
 
@@ -48,8 +53,8 @@ export const createReminder = async (
   const notification: NotificationRow = {
     userId: msg.author.id,
     notificationType: NotificationType.Arbitrary,
-    guildId: msg.channel.guild.id,
-    channelId: msg.channel.id,
+    guildId: channel.guild.id,
+    channelId: channel.id,
     notificationPayload: reminderText,
     reminderTime: when,
   };
@@ -62,7 +67,9 @@ export const createPeriodicReminder = async (
   conn: mysql.Pool | mysql.PoolConnection,
   msg: Eris.Message
 ) => {
-  if (msg.channel.type !== 0) {
+  const channel = client.getChannel(msg.channel.id);
+  if (channel.type !== 0) {
+    console.warn(`Unhandled channel type for reminder: ${channel.type}`);
     return 'Unable to respond on this channel because it is of an unhandlable type';
   }
 
@@ -78,8 +85,8 @@ export const createPeriodicReminder = async (
   const id = await schedulePeriodicReminder(client, conn, {
     id: 0,
     userId: msg.author.id,
-    guildId: msg.channel.guild.id,
-    channelId: msg.channel.id,
+    guildId: channel.guild.id,
+    channelId: channel.id,
     notificationPayload: message,
     reminderTime: cronString,
   });

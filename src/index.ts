@@ -42,7 +42,15 @@ if (!token) {
   throw new Error('`DISCORD_TOKEN` environment variable must be supplied');
 }
 
-const client = Eris(token);
+const client = Eris(token, {
+  intents: [
+    'messageContent',
+    'guildMessageReactions',
+    'directMessageReactions',
+    'guildMessages',
+    'directMessages',
+  ],
+});
 
 const OUR_USER_ID = '663604736485752832';
 

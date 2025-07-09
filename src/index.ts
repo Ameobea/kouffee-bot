@@ -32,7 +32,7 @@ import {
   hasMovie,
 } from './modules/movie.js';
 import { archivePost, getRandomArchivedPost } from './modules/archive.js';
-import { getRandomOSRSLink } from './modules/random-osrs.js';
+import { getRandomOSRSLink, getRandomRS3Link } from './modules/random-osrs.js';
 import { getSankakuComplexImageDriver } from './modules/sankaku-complex.js';
 import { getServerDate } from './modules/serverDate.js';
 
@@ -168,6 +168,8 @@ const getResponse = async (
     }
   } else if (lowerMsg.startsWith(cmd('agirl'))) {
     return await getRandomAnimeGirlURL(pool);
+  } else if (lowerMsg.startsWith(cmd('randomrs3'))) {
+    return getRandomRS3Link();
   } else if (lowerMsg.startsWith(cmd('randomrs'))) {
     return getRandomOSRSLink();
   } else if (lowerMsg.startsWith(cmd('random'))) {

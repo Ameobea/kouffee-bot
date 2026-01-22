@@ -34,7 +34,7 @@
     "dayjs": "^1.10.7",
     "eris": "^0.18.0",
     "funfix-core": "^7.0.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "mysql": "^2.18.1",
     "node-cron": "^2.0.3",
     "node-fetch": "^3.2",
